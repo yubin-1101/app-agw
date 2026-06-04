@@ -9,6 +9,8 @@ import com.company.agw.domain.spam.SpamMessageListResponse;
 import com.company.agw.domain.spam.SpamMessageService;
 import com.company.agw.domain.user.UserInfoRequest;
 import com.company.agw.domain.user.UserInfoResponse;
+import com.company.agw.domain.user.SetUserInfoRequest;
+import com.company.agw.domain.user.SetUserInfoResponse;
 import com.company.agw.domain.user.UserService;
 import com.company.agw.domain.user.UserStatusRequest;
 import com.company.agw.domain.user.UserStatusResponse;
@@ -44,6 +46,16 @@ public class PassExternalController {
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
         httpRequest.setAttribute("mdn", response.getUserInfo());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 사용자 > 설정정보 변경", action = LogAction.UPDATE)
+    @PostMapping("/v1/setUserInfo")
+    public SetUserInfoResponse setUserInfo(@RequestBody SetUserInfoRequest request, HttpServletRequest httpRequest) {
+        SetUserInfoResponse response = userService.setUserInfo(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
         return response;
     }
 

@@ -69,25 +69,44 @@
     </select>
 
     <select id="getLastVisitAt" resultType="java.lang.String">
-        SELECT DATE_FORMAT(last_visit_dt, '%Y%m%d%H%i%s')
+        SELECT save_dt
         FROM app_configurations_history
-        WHERE cust_num = #{decodeUserID}
+        WHERE channel = 'PASS'
+          AND cust_num = #{decodeUserID}
     </select>
 
     <insert id="upsertLastVisitAt">
         INSERT INTO app_configurations_history (
+            channel,
             cust_num,
-            last_visit_dt,
-            created_at,
-            updated_at
+            push_flag,
+            save_dt,
+            last_sms_clc
         ) VALUES (
+            'PASS',
             #{decodeUserID},
-            NOW(),
-            NOW(),
-            NOW()
+            '0',
+            DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
+            NULL
         )
         ON DUPLICATE KEY UPDATE
-            last_visit_dt = NOW(),
-            updated_at = NOW()
+            save_dt = DATE_FORMAT(NOW(), '%Y%m%d%H%i%s')
     </insert>
+
+    <update id="updateUserInfoByPass" parameterType="com.company.agw.domain.user.PassUserInfoEntity">
+        UPDATE customer_profile
+        SET
+            email_kind = #{emailKind},
+            auth_kind = #{authKind},
+            addr_flag = #{addrFlag},
+            kisa_agree = #{kisaAgree},
+            url_holdoff = #{urlHoldoff},
+            push_flag = #{pushFlag},
+            fsec_agree = #{fsecAgree},
+            impersonate_agree = #{impersonateAgree},
+            block_international = #{blockInternational},
+            block_roaming = #{blockRoaming},
+            filter_kind = #{filterKind}
+        WHERE cust_num = #{custNum}
+    </update>
 </mapper>

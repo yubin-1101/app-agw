@@ -17,4 +17,6 @@ public interface UserMapper {
     String getLastVisitAt(@Param("decodeUserID") String decodeUserID);
 
     int upsertLastVisitAt(@Param("decodeUserID") String decodeUserID);
+
+    int updateUserInfoByPass(PassUserInfoEntity userInfo);
 }

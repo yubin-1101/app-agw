@@ -60,8 +60,23 @@ public class UserInfoResponse {
         );
     }
 
+    private static Integer defaultNumber(String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     private static Integer defaultNumber(Integer value) {
-        return value == null ? 0 : value;
+        if (value == null) {
+            return 0;
+        }
+        return value;
     }
 
     private static String defaultString(String value) {
