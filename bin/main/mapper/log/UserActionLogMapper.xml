@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.agw.log.UserActionLogMapper">
+
+    <insert id="insertUserActionLog" parameterType="com.company.agw.log.UserActionLog">
+        INSERT INTO tb_user_action_log (
+            user_id,
+            menu_path,
+            action,
+            request_data,
+            success_yn,
+            client_ip,
+            error_message,
+            created_at
+        ) VALUES (
+            #{userId},
+            #{menuPath},
+            #{action},
+            #{requestData},
+            #{successYn},
+            #{clientIp},
+            #{errorMessage},
+            #{createdAt}
+        )
+    </insert>
+</mapper>

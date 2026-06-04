@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.agw.domain.user.UserMapper">
+
+    <select id="selectUserByUserId" resultType="com.company.agw.domain.user.UserEntity">
+        SELECT
+            user_seq,
+            user_id,
+            mdn,
+            service_status,
+            setting_value,
+            created_at,
+            updated_at
+        FROM tb_user
+        WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectUserByMdn" resultType="com.company.agw.domain.user.UserEntity">
+        SELECT
+            user_seq,
+            user_id,
+            mdn,
+            service_status,
+            setting_value,
+            created_at,
+            updated_at
+        FROM tb_user
+        WHERE mdn = #{mdn}
+    </select>
+
+    <update id="updateUserStatus">
+        UPDATE tb_user
+        SET
+            service_status = #{serviceStatus},
+            setting_value = #{settingValue},
+            updated_at = NOW()
+        WHERE user_seq = #{userSeq}
+    </update>
+
+    <select id="selectUserPrivateInfobyPass" resultType="com.company.agw.domain.user.PassUserInfoEntity">
+        SELECT
+            cust_num,
+            auth_kind,
+            filter_kind,
+            email_kind,
+            email_addr1,
+            addr_flag,
+            kisa_agree,
+            addr_dt,
+            cb_sms_flag,
+            cb_sms_term,
+            cb_sms_clc,
+            dynm_flag,
+            wifi_id,
+            wifi_date,
+            msg_dn_time,
+            notice_dn_time,
+            url_holdoff,
+            push_flag,
+            push_key,
+            platform_version,
+            fsec_agree,
+            impersonate_agree,
+            block_international,
+            block_roaming
+        FROM customer_profile
+        WHERE cust_num = #{decodeUserID}
+    </select>
+
+    <select id="getLastVisitAt" resultType="java.lang.String">
+        SELECT DATE_FORMAT(last_visit_dt, '%Y%m%d%H%i%s')
+        FROM app_configurations_history
+        WHERE cust_num = #{decodeUserID}
+    </select>
+
+    <insert id="upsertLastVisitAt">
+        INSERT INTO app_configurations_history (
+            cust_num,
+            last_visit_dt,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{decodeUserID},
+            NOW(),
+            NOW(),
+            NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            last_visit_dt = NOW(),
+            updated_at = NOW()
+    </insert>
+</mapper>

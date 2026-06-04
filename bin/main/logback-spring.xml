@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty name="APP_NAME" source="spring.application.name" defaultValue="app-gateway"/>
+
+    <appender name="CONSOLE_PATTERN" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level ${APP_NAME} %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CONSOLE_MSG" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="ASYNC_CONSOLE_PATTERN" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="CONSOLE_PATTERN"/>
+    </appender>
+
+    <appender name="ASYNC_CONSOLE_MSG" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>4096</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="CONSOLE_MSG"/>
+    </appender>
+
+    <springProfile name="local">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_CONSOLE_PATTERN"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="dev,stg,tb,prd">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_CONSOLE_MSG"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!local &amp; !dev &amp; !stg &amp; !tb &amp; !prd">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_CONSOLE_PATTERN"/>
+        </root>
+    </springProfile>
+</configuration>

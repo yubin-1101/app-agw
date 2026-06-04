@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.agw.domain.filter.FilterMapper">
+
+    <select id="selectFilters" resultType="com.company.agw.domain.filter.FilterEntity">
+        SELECT
+            filter_seq,
+            user_id,
+            filter_type,
+            filter_value,
+            created_at,
+            updated_at
+        FROM tb_user_filter
+        WHERE user_id = #{userId}
+        <if test="filterType != null">
+            AND filter_type = #{filterType}
+        </if>
+        ORDER BY filter_seq DESC
+    </select>
+
+    <insert id="insertFilter" parameterType="com.company.agw.domain.filter.FilterEntity">
+        INSERT INTO tb_user_filter (
+            user_id,
+            filter_type,
+            filter_value,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{userId},
+            #{filterType},
+            #{filterValue},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <update id="updateFilter" parameterType="com.company.agw.domain.filter.FilterEntity">
+        UPDATE tb_user_filter
+        SET
+            filter_type = #{filterType},
+            filter_value = #{filterValue},
+            updated_at = NOW()
+        WHERE filter_seq = #{filterSeq}
+          AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteFilter">
+        DELETE FROM tb_user_filter
+        WHERE filter_seq = #{filterSeq}
+          AND user_id = #{userId}
+    </delete>
+</mapper>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.agw.domain.spam.SpamMessageMapper">
+
+    <select id="selectSpamMessages" resultType="com.company.agw.domain.spam.SpamMessageEntity">
+        SELECT
+            spam_seq,
+            message_id,
+            user_id,
+            message_type,
+            sender,
+            preview,
+            deleted_yn,
+            received_at,
+            expire_at,
+            created_at,
+            updated_at
+        FROM tb_spam_message
+        WHERE user_id = #{userId}
+          AND deleted_yn = 'N'
+        <if test="messageType != null">
+            AND message_type = #{messageType}
+        </if>
+        ORDER BY received_at DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="selectSpamMessage" resultType="com.company.agw.domain.spam.SpamMessageEntity">
+        SELECT
+            spam_seq,
+            message_id,
+            user_id,
+            message_type,
+            sender,
+            preview,
+            deleted_yn,
+            received_at,
+            expire_at,
+            created_at,
+            updated_at
+        FROM tb_spam_message
+        WHERE user_id = #{userId}
+          AND message_id = #{messageId}
+    </select>
+
+    <update id="updateDeleted">
+        UPDATE tb_spam_message
+        SET
+            deleted_yn = 'Y',
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND message_id = #{messageId}
+    </update>
+</mapper>

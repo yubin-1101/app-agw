@@ -1,0 +1,61 @@
+package com.company.agw.api.external.pass;
+
+import com.company.agw.common.response.CommonResponse;
+import com.company.agw.domain.filter.FilterListRequest;
+import com.company.agw.domain.filter.FilterListResponse;
+import com.company.agw.domain.filter.FilterService;
+import com.company.agw.domain.spam.SpamMessageListRequest;
+import com.company.agw.domain.spam.SpamMessageListResponse;
+import com.company.agw.domain.spam.SpamMessageService;
+import com.company.agw.domain.user.UserInfoRequest;
+import com.company.agw.domain.user.UserInfoResponse;
+import com.company.agw.domain.user.UserService;
+import com.company.agw.domain.user.UserStatusRequest;
+import com.company.agw.domain.user.UserStatusResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import com.company.agw.log.AopLogInfo;
+import com.company.agw.log.LogAction;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/external/pass")
+@RequiredArgsConstructor
+public class PassExternalController {
+
+    private final UserService userService;
+    private final FilterService filterService;
+    private final SpamMessageService spamMessageService;
+
+    @AopLogInfo(menuPath = "PASS > 사용자 > 상태 조회", action = LogAction.SEARCH)
+    @PostMapping("/user/status")
+    public CommonResponse<UserStatusResponse> getUserStatus(@RequestBody UserStatusRequest request) {
+        return CommonResponse.success(userService.getUserStatus(request));
+    }
+
+    @AopLogInfo(menuPath = "PASS > 사용자 > 정보 조회", action = LogAction.SEARCH)
+    @PostMapping("/v1/getUserInfo")
+    public UserInfoResponse getUserInfo(@RequestBody UserInfoRequest request, HttpServletRequest httpRequest) {
+        UserInfoResponse response = userService.getUserInfo(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        httpRequest.setAttribute("mdn", response.getUserInfo());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 필터 > 목록 조회", action = LogAction.SEARCH)
+    @PostMapping("/filters")
+    public CommonResponse<FilterListResponse> getFilters(@RequestBody FilterListRequest request) {
+        return CommonResponse.success(filterService.getFilters(request));
+    }
+
+    @AopLogInfo(menuPath = "PASS > 스팸 메시지 > 목록 조회", action = LogAction.SEARCH)
+    @PostMapping("/spam/messages")
+    public CommonResponse<SpamMessageListResponse> getSpamMessages(@RequestBody SpamMessageListRequest request) {
+        return CommonResponse.success(spamMessageService.getSpamMessages(request));
+    }
+}
