@@ -1,11 +1,18 @@
 package com.company.agw.domain.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.company.agw.common.response.PassResponseCode;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
+@JsonPropertyOrder({
+        "userID",
+        "retCode",
+        "retMsg"
+})
 public class SetUserInfoResponse {
 
     @JsonProperty("userID")
@@ -17,7 +24,7 @@ public class SetUserInfoResponse {
     public static SetUserInfoResponse success(String userID) {
         return SetUserInfoResponse.builder()
                 .userID(userID)
-                .retCode(1000)
+                .retCode(PassResponseCode.SUCCESS.getRetCode())
                 .retMsg("고객 정보 요청 성공하였습니다.")
                 .build();
     }
@@ -31,6 +38,6 @@ public class SetUserInfoResponse {
     }
 
     public static SetUserInfoResponse notJoined() {
-        return fail("", 1610, "스팸필터링 서비스 가입 후에 사용 가능합니다.");
+        return fail("", PassResponseCode.NOT_JOINED.getRetCode(), PassResponseCode.NOT_JOINED.getRetMsg());
     }
 }

@@ -2,11 +2,13 @@ package com.company.agw.domain.user;
 
 import com.company.agw.auth.AuthService;
 import com.company.agw.common.exception.BusinessException;
+import com.company.agw.common.response.PassResponseCode;
 import com.company.agw.common.response.ResponseCode;
 import com.company.agw.common.validation.RequestValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 @Service
 @RequiredArgsConstructor
@@ -37,11 +39,19 @@ public class UserService {
         try {
             decodeUserID = authService.decryptPassUserId(userID);
         } catch (Exception e) {
-            return UserInfoResponse.fail(userID, 1400, "Key 무결성 에러");
+            return UserInfoResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
         }
 
         if (!hasText(userID) || !isNumeric(decodeUserID)) {
-            return UserInfoResponse.fail(userID, 1400, "Key 무결성 에러");
+            return UserInfoResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
         }
 
         try {
@@ -54,7 +64,11 @@ public class UserService {
             userMapper.upsertLastVisitAt(decodeUserID);
             return UserInfoResponse.success(userID, userInfo, lastVisitDt);
         } catch (Exception e) {
-            return UserInfoResponse.fail(userID, 1500, "SERVER_ERROR");
+            return UserInfoResponse.fail(
+                    userID,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
         }
     }
 
@@ -66,11 +80,19 @@ public class UserService {
         try {
             decodeUserID = authService.decryptPassUserId(userID);
         } catch (Exception e) {
-            return SetUserInfoResponse.fail(userID, 1400, "Key 무결성 에러");
+            return SetUserInfoResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
         }
 
         if (!hasText(userID) || !isNumeric(decodeUserID) || !isValidSetUserInfoRequest(request)) {
-            return SetUserInfoResponse.fail(userID, 1400, "Key 무결성 에러");
+            return SetUserInfoResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
         }
 
         try {
@@ -79,10 +101,16 @@ public class UserService {
                 return SetUserInfoResponse.notJoined();
             }
 
-            userMapper.updateUserInfoByPass(toPassUserInfoEntity(decodeUserID, request));
+            PassUserState userState = PassUserState.fromRequest(request.getUserState());
+            userMapper.updateUserInfoByPass(userState.toEntity(decodeUserID, request.getReferenceFilterValue()));
             return SetUserInfoResponse.success(userID);
         } catch (Exception e) {
-            return SetUserInfoResponse.fail(userID, 1500, "SERVER_ERROR");
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return SetUserInfoResponse.fail(
+                    userID,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
         }
     }
 
@@ -96,25 +124,6 @@ public class UserService {
 
     private boolean isValidSetUserInfoRequest(SetUserInfoRequest request) {
         return request != null
-                && request.getUserState() != null
-                && request.getUserState().size() == 10
-                && request.getReferenceFilterValue() != null;
-    }
-
-    private PassUserInfoEntity toPassUserInfoEntity(String decodeUserID, SetUserInfoRequest request) {
-        PassUserInfoEntity userInfo = new PassUserInfoEntity();
-        userInfo.setCustNum(decodeUserID);
-        userInfo.setEmailKind(String.valueOf(request.getUserState().get(0)));
-        userInfo.setAuthKind(String.valueOf(request.getUserState().get(1)));
-        userInfo.setAddrFlag(String.valueOf(request.getUserState().get(2)));
-        userInfo.setKisaAgree(String.valueOf(request.getUserState().get(3)));
-        userInfo.setUrlHoldoff(String.valueOf(request.getUserState().get(4)));
-        userInfo.setPushFlag(request.getUserState().get(5));
-        userInfo.setFsecAgree(String.valueOf(request.getUserState().get(6)));
-        userInfo.setImpersonateAgree(String.valueOf(request.getUserState().get(7)));
-        userInfo.setBlockInternational(String.valueOf(request.getUserState().get(8)));
-        userInfo.setBlockRoaming(String.valueOf(request.getUserState().get(9)));
-        userInfo.setFilterKind(String.valueOf(request.getReferenceFilterValue()));
-        return userInfo;
+                && PassUserState.isValidRequest(request.getUserState(), request.getReferenceFilterValue());
     }
 }

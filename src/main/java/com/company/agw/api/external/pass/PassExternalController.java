@@ -4,6 +4,10 @@ import com.company.agw.common.response.CommonResponse;
 import com.company.agw.domain.filter.FilterListRequest;
 import com.company.agw.domain.filter.FilterListResponse;
 import com.company.agw.domain.filter.FilterService;
+import com.company.agw.domain.filter.SetUserFilterWhiteRequest;
+import com.company.agw.domain.filter.SetUserFilterWhiteResponse;
+import com.company.agw.domain.filter.UserFilterWhiteRequest;
+import com.company.agw.domain.filter.UserFilterWhiteResponse;
 import com.company.agw.domain.spam.SpamMessageListRequest;
 import com.company.agw.domain.spam.SpamMessageListResponse;
 import com.company.agw.domain.spam.SpamMessageService;
@@ -53,6 +57,32 @@ public class PassExternalController {
     @PostMapping("/v1/setUserInfo")
     public SetUserInfoResponse setUserInfo(@RequestBody SetUserInfoRequest request, HttpServletRequest httpRequest) {
         SetUserInfoResponse response = userService.setUserInfo(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 필터 > 화이트리스트 조회", action = LogAction.SEARCH)
+    @PostMapping("/v1/getUserfilterWhite")
+    public UserFilterWhiteResponse getUserFilterWhite(
+            @RequestBody UserFilterWhiteRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        UserFilterWhiteResponse response = filterService.getUserFilterWhite(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 필터 > 화이트리스트 설정", action = LogAction.UPDATE)
+    @PostMapping("/v1/setUserfilterWhite")
+    public SetUserFilterWhiteResponse setUserFilterWhite(
+            @RequestBody SetUserFilterWhiteRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        SetUserFilterWhiteResponse response = filterService.setUserFilterWhite(request);
         httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());

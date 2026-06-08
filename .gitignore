@@ -12,3 +12,4 @@ application-local.yml
 application-dev.yml
 application-prod.yml
 conf/application-dev-secret.yml
+conf/dbprop.properties
