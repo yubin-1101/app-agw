@@ -17,7 +17,7 @@ import lombok.Getter;
         "whitePattern",
         "whiteNUMAddr"
 })
-public class UserFilterWhiteResponse {
+public class GetUserFilterWhiteResponse {
 
     @JsonProperty("userID")
     private String userID;
@@ -33,13 +33,13 @@ public class UserFilterWhiteResponse {
     @JsonProperty("whiteNUMAddr")
     private List<List<Object>> whiteNUMAddr;
 
-    public static UserFilterWhiteResponse success(
+    public static GetUserFilterWhiteResponse success(
             String userID,
             List<List<Object>> whiteNUM,
             List<List<Object>> whitePattern,
             List<List<Object>> whiteNUMAddr
     ) {
-        return UserFilterWhiteResponse.builder()
+        return GetUserFilterWhiteResponse.builder()
                 .userID(userID)
                 .retCode(PassResponseCode.SUCCESS.getRetCode())
                 .retMsg("고객 정보 요청 성공하였습니다.")
@@ -49,8 +49,8 @@ public class UserFilterWhiteResponse {
                 .build();
     }
 
-    public static UserFilterWhiteResponse fail(String userID, Integer retCode, String retMsg) {
-        return UserFilterWhiteResponse.builder()
+    public static GetUserFilterWhiteResponse fail(String userID, Integer retCode, String retMsg) {
+        return GetUserFilterWhiteResponse.builder()
                 .userID(userID == null ? "" : userID)
                 .retCode(retCode)
                 .retMsg(retMsg)
@@ -60,7 +60,7 @@ public class UserFilterWhiteResponse {
                 .build();
     }
 
-    public static UserFilterWhiteResponse notJoined() {
+    public static GetUserFilterWhiteResponse notJoined() {
         return fail("", PassResponseCode.NOT_JOINED.getRetCode(), PassResponseCode.NOT_JOINED.getRetMsg());
     }
 }

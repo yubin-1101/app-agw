@@ -19,7 +19,7 @@ import lombok.Getter;
         "userInfo",
         "lastVisitDt"
 })
-public class UserInfoResponse {
+public class GetUserInfoResponse {
 
     @JsonProperty("userID")
     private String userID;
@@ -32,8 +32,8 @@ public class UserInfoResponse {
     private String userInfo;
     private String lastVisitDt;
 
-    public static UserInfoResponse success(String userID, PassUserInfoEntity userInfo, String lastVisitDt) {
-        return UserInfoResponse.builder()
+    public static GetUserInfoResponse success(String userID, PassUserInfoEntity userInfo, String lastVisitDt) {
+        return GetUserInfoResponse.builder()
                 .userID(userID)
                 .retCode(PassResponseCode.SUCCESS.getRetCode())
                 .retMsg("요청 처리 성공 하였습니다.")
@@ -45,15 +45,15 @@ public class UserInfoResponse {
                 .build();
     }
 
-    public static UserInfoResponse fail(String userID, Integer retCode, String retMsg) {
-        return UserInfoResponse.builder()
+    public static GetUserInfoResponse fail(String userID, Integer retCode, String retMsg) {
+        return GetUserInfoResponse.builder()
                 .userID(defaultString(userID))
                 .retCode(retCode)
                 .retMsg(retMsg)
                 .build();
     }
 
-    public static UserInfoResponse notJoined() {
+    public static GetUserInfoResponse notJoined() {
         return fail("", PassResponseCode.NOT_JOINED.getRetCode(), PassResponseCode.NOT_JOINED.getRetMsg());
     }
 

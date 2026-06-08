@@ -3,15 +3,15 @@ package com.company.agw.domain.filter;
 import java.util.ArrayList;
 import java.util.List;
 
-record WhiteFilterCommandResult(Integer cmdType, int result, String id, String date, String data) {
+record PassFilterCommandResult(Integer cmdType, int result, String id, String date, String data) {
     static final int SUCCESS = 0;
     static final int FAILED = 1;
     static final int INVALID_REQUEST = -1;
     static final int DUPLICATED_WHITE = -2;
     static final int DUPLICATED_BLACK = -3;
 
-    static WhiteFilterCommandResult of(WhiteFilterCommand command, int result, String id, String date) {
-        return new WhiteFilterCommandResult(command.cmdType(), result, id, date, command.data());
+    static PassFilterCommandResult of(PassFilterCommand command, int result, String id, String date) {
+        return new PassFilterCommandResult(command.cmdType(), result, id, date, command.data());
     }
 
     List<Object> toPassRow() {

@@ -3,7 +3,7 @@ package com.company.agw.domain.filter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-record WhiteFilterCommand(
+record PassFilterCommand(
         String custNum,
         Integer cmdType,
         String id,
@@ -18,12 +18,12 @@ record WhiteFilterCommand(
     private static final int REQUEST_ROW_SIZE = 5;
     private static final int ID_MAX_BYTES = 20;
 
-    static WhiteFilterCommand fromPassRow(String custNum, List<Object> row) {
+    static PassFilterCommand fromPassRow(String custNum, List<Object> row) {
         if (row == null || row.size() < REQUEST_ROW_SIZE) {
-            return new WhiteFilterCommand(custNum, null, "", "", "", "");
+            return new PassFilterCommand(custNum, null, "", "", "", "");
         }
 
-        return new WhiteFilterCommand(
+        return new PassFilterCommand(
                 custNum,
                 toInteger(row.get(0)),
                 toStringValue(row.get(1)),
@@ -49,7 +49,7 @@ record WhiteFilterCommand(
         return isCreate() || isUpdate();
     }
 
-    boolean isValidFor(WhiteFilterKind filterKind) {
+    boolean isValidFor(PassFilterCommandKind filterKind) {
         if (!isCreate() && !isDelete() && !isUpdate()) {
             return false;
         }
@@ -73,8 +73,8 @@ record WhiteFilterCommand(
         return byteLength(data) <= filterKind.dataMaxBytes();
     }
 
-    UserWhiteFilterCommandEntity toEntity(String saveDt) {
-        UserWhiteFilterCommandEntity entity = new UserWhiteFilterCommandEntity();
+    PassFilterCommandEntity toEntity(String saveDt) {
+        PassFilterCommandEntity entity = new PassFilterCommandEntity();
         entity.setId(id);
         entity.setCustNum(custNum);
         entity.setData(data);

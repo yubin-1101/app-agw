@@ -32,14 +32,14 @@ public class UserService {
     }
 
     @Transactional
-    public UserInfoResponse getUserInfo(UserInfoRequest request) {
+    public GetUserInfoResponse getUserInfo(GetUserInfoRequest request) {
         String userID = request == null ? null : request.getUserID();
         String decodeUserID;
 
         try {
             decodeUserID = authService.decryptPassUserId(userID);
         } catch (Exception e) {
-            return UserInfoResponse.fail(
+            return GetUserInfoResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
                     PassResponseCode.INVALID_PARAMETER.getRetMsg()
@@ -47,7 +47,7 @@ public class UserService {
         }
 
         if (!hasText(userID) || !isNumeric(decodeUserID)) {
-            return UserInfoResponse.fail(
+            return GetUserInfoResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
                     PassResponseCode.INVALID_PARAMETER.getRetMsg()
@@ -57,14 +57,14 @@ public class UserService {
         try {
             PassUserInfoEntity userInfo = userMapper.selectUserPrivateInfobyPass(decodeUserID);
             if (userInfo == null) {
-                return UserInfoResponse.notJoined();
+                return GetUserInfoResponse.notJoined();
             }
 
             String lastVisitDt = userMapper.getLastVisitAt(decodeUserID);
             userMapper.upsertLastVisitAt(decodeUserID);
-            return UserInfoResponse.success(userID, userInfo, lastVisitDt);
+            return GetUserInfoResponse.success(userID, userInfo, lastVisitDt);
         } catch (Exception e) {
-            return UserInfoResponse.fail(
+            return GetUserInfoResponse.fail(
                     userID,
                     PassResponseCode.PROCESS_ERROR.getRetCode(),
                     PassResponseCode.PROCESS_ERROR.getRetMsg()

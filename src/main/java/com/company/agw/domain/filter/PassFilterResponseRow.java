@@ -3,9 +3,9 @@ package com.company.agw.domain.filter;
 import java.util.ArrayList;
 import java.util.List;
 
-record WhiteFilterResponseRow(String id, String data, String category, String memo, String date) {
-    static WhiteFilterResponseRow fromEntity(UserWhiteFilterEntity entity) {
-        return new WhiteFilterResponseRow(
+record PassFilterResponseRow(String id, String data, String category, String memo, String date) {
+    static PassFilterResponseRow fromEntity(PassFilterRowEntity entity) {
+        return new PassFilterResponseRow(
                 defaultString(entity.getId()),
                 defaultString(entity.getData()),
                 defaultString(entity.getCategory()),

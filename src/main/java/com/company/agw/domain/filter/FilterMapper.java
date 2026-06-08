@@ -9,7 +9,9 @@ public interface FilterMapper {
 
     List<FilterEntity> selectFilters(@Param("userId") String userId, @Param("filterType") FilterType filterType);
 
-    List<UserWhiteFilterEntity> selectWhiteFiltersByPass(@Param("decodeUserID") String decodeUserID);
+    List<PassFilterRowEntity> selectWhiteFiltersByPass(@Param("decodeUserID") String decodeUserID);
+
+    List<PassFilterRowEntity> selectBlackFiltersByPass(@Param("decodeUserID") String decodeUserID);
 
     int countWhiteNumberByData(
             @Param("custNum") String custNum,
@@ -29,23 +31,59 @@ public interface FilterMapper {
             @Param("excludeId") String excludeId
     );
 
-    int insertWhiteNumber(UserWhiteFilterCommandEntity entity);
+    int countBlackNumberByData(
+            @Param("custNum") String custNum,
+            @Param("data") String data,
+            @Param("excludeId") String excludeId
+    );
 
-    int updateWhiteNumber(UserWhiteFilterCommandEntity entity);
+    int countBlackPatternByData(
+            @Param("custNum") String custNum,
+            @Param("data") String data,
+            @Param("excludeId") String excludeId
+    );
+
+    int countBlackPrefixByData(
+            @Param("custNum") String custNum,
+            @Param("data") String data,
+            @Param("excludeId") String excludeId
+    );
+
+    int insertWhiteNumber(PassFilterCommandEntity entity);
+
+    int updateWhiteNumber(PassFilterCommandEntity entity);
 
     int deleteWhiteNumber(@Param("custNum") String custNum, @Param("id") String id);
 
-    int insertWhitePattern(UserWhiteFilterCommandEntity entity);
+    int insertWhitePattern(PassFilterCommandEntity entity);
 
-    int updateWhitePattern(UserWhiteFilterCommandEntity entity);
+    int updateWhitePattern(PassFilterCommandEntity entity);
 
     int deleteWhitePattern(@Param("custNum") String custNum, @Param("id") String id);
 
-    int insertWhiteAddress(UserWhiteFilterCommandEntity entity);
+    int insertWhiteAddress(PassFilterCommandEntity entity);
 
-    int updateWhiteAddress(UserWhiteFilterCommandEntity entity);
+    int updateWhiteAddress(PassFilterCommandEntity entity);
 
     int deleteWhiteAddress(@Param("custNum") String custNum, @Param("id") String id);
+
+    int insertBlackNumber(PassFilterCommandEntity entity);
+
+    int updateBlackNumber(PassFilterCommandEntity entity);
+
+    int deleteBlackNumber(@Param("custNum") String custNum, @Param("id") String id);
+
+    int insertBlackPattern(PassFilterCommandEntity entity);
+
+    int updateBlackPattern(PassFilterCommandEntity entity);
+
+    int deleteBlackPattern(@Param("custNum") String custNum, @Param("id") String id);
+
+    int insertBlackPrefix(PassFilterCommandEntity entity);
+
+    int updateBlackPrefix(PassFilterCommandEntity entity);
+
+    int deleteBlackPrefix(@Param("custNum") String custNum, @Param("id") String id);
 
     int insertFilter(FilterEntity filter);
 

@@ -4,15 +4,19 @@ import com.company.agw.common.response.CommonResponse;
 import com.company.agw.domain.filter.FilterListRequest;
 import com.company.agw.domain.filter.FilterListResponse;
 import com.company.agw.domain.filter.FilterService;
+import com.company.agw.domain.filter.GetUserFilterBlackRequest;
+import com.company.agw.domain.filter.GetUserFilterBlackResponse;
+import com.company.agw.domain.filter.GetUserFilterWhiteRequest;
+import com.company.agw.domain.filter.GetUserFilterWhiteResponse;
+import com.company.agw.domain.filter.SetUserFilterBlackRequest;
+import com.company.agw.domain.filter.SetUserFilterBlackResponse;
 import com.company.agw.domain.filter.SetUserFilterWhiteRequest;
 import com.company.agw.domain.filter.SetUserFilterWhiteResponse;
-import com.company.agw.domain.filter.UserFilterWhiteRequest;
-import com.company.agw.domain.filter.UserFilterWhiteResponse;
 import com.company.agw.domain.spam.SpamMessageListRequest;
 import com.company.agw.domain.spam.SpamMessageListResponse;
 import com.company.agw.domain.spam.SpamMessageService;
-import com.company.agw.domain.user.UserInfoRequest;
-import com.company.agw.domain.user.UserInfoResponse;
+import com.company.agw.domain.user.GetUserInfoRequest;
+import com.company.agw.domain.user.GetUserInfoResponse;
 import com.company.agw.domain.user.SetUserInfoRequest;
 import com.company.agw.domain.user.SetUserInfoResponse;
 import com.company.agw.domain.user.UserService;
@@ -44,8 +48,8 @@ public class PassExternalController {
 
     @AopLogInfo(menuPath = "PASS > 사용자 > 정보 조회", action = LogAction.SEARCH)
     @PostMapping("/v1/getUserInfo")
-    public UserInfoResponse getUserInfo(@RequestBody UserInfoRequest request, HttpServletRequest httpRequest) {
-        UserInfoResponse response = userService.getUserInfo(request);
+    public GetUserInfoResponse getUserInfo(@RequestBody GetUserInfoRequest request, HttpServletRequest httpRequest) {
+        GetUserInfoResponse response = userService.getUserInfo(request);
         httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
@@ -65,11 +69,24 @@ public class PassExternalController {
 
     @AopLogInfo(menuPath = "PASS > 필터 > 화이트리스트 조회", action = LogAction.SEARCH)
     @PostMapping("/v1/getUserfilterWhite")
-    public UserFilterWhiteResponse getUserFilterWhite(
-            @RequestBody UserFilterWhiteRequest request,
+    public GetUserFilterWhiteResponse getUserFilterWhite(
+            @RequestBody GetUserFilterWhiteRequest request,
             HttpServletRequest httpRequest
     ) {
-        UserFilterWhiteResponse response = filterService.getUserFilterWhite(request);
+        GetUserFilterWhiteResponse response = filterService.getUserFilterWhite(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 필터 > 블랙리스트 조회", action = LogAction.SEARCH)
+    @PostMapping("/v1/getUserfilterBlack")
+    public GetUserFilterBlackResponse getUserFilterBlack(
+            @RequestBody GetUserFilterBlackRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        GetUserFilterBlackResponse response = filterService.getUserFilterBlack(request);
         httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
@@ -83,6 +100,19 @@ public class PassExternalController {
             HttpServletRequest httpRequest
     ) {
         SetUserFilterWhiteResponse response = filterService.setUserFilterWhite(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 필터 > 블랙리스트 설정", action = LogAction.UPDATE)
+    @PostMapping("/v1/setUserfilterBlack")
+    public SetUserFilterBlackResponse setUserFilterBlack(
+            @RequestBody SetUserFilterBlackRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        SetUserFilterBlackResponse response = filterService.setUserFilterBlack(request);
         httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());

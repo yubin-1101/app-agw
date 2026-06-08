@@ -5,12 +5,12 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UserWhiteFilterEntity {
+public class PassFilterCommandEntity {
 
-    private String filterGroup;
     private String id;
+    private String custNum;
     private String data;
     private String category;
     private String memo;
-    private String date;
+    private String saveDt;
 }

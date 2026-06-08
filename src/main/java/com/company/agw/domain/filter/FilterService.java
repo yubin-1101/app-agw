@@ -41,14 +41,14 @@ public class FilterService {
     }
 
     @Transactional(readOnly = true)
-    public UserFilterWhiteResponse getUserFilterWhite(UserFilterWhiteRequest request) {
+    public GetUserFilterWhiteResponse getUserFilterWhite(GetUserFilterWhiteRequest request) {
         String userID = request == null ? null : request.getUserID();
         String decodeUserID;
 
         try {
             decodeUserID = authService.decryptPassUserId(userID);
         } catch (Exception e) {
-            return UserFilterWhiteResponse.fail(
+            return GetUserFilterWhiteResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
                     PassResponseCode.INVALID_PARAMETER.getRetMsg()
@@ -56,7 +56,7 @@ public class FilterService {
         }
 
         if (!hasText(userID) || !isNumeric(decodeUserID)) {
-            return UserFilterWhiteResponse.fail(
+            return GetUserFilterWhiteResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
                     PassResponseCode.INVALID_PARAMETER.getRetMsg()
@@ -65,24 +65,75 @@ public class FilterService {
 
         try {
             if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
-                return UserFilterWhiteResponse.notJoined();
+                return GetUserFilterWhiteResponse.notJoined();
             }
 
             Map<String, List<List<Object>>> filters = filterMapper.selectWhiteFiltersByPass(decodeUserID)
                     .stream()
                     .collect(Collectors.groupingBy(
-                            UserWhiteFilterEntity::getFilterGroup,
+                            PassFilterRowEntity::getFilterGroup,
                             Collectors.mapping(this::toPassFilterRow, Collectors.toList())
                     ));
 
-            return UserFilterWhiteResponse.success(
+            return GetUserFilterWhiteResponse.success(
                     userID,
-                    filters.getOrDefault(WhiteFilterKind.NUMBER.passFieldName(), List.of()),
-                    filters.getOrDefault(WhiteFilterKind.PATTERN.passFieldName(), List.of()),
-                    filters.getOrDefault(WhiteFilterKind.ADDRESS.passFieldName(), List.of())
+                    filters.getOrDefault(PassFilterCommandKind.WHITE_NUMBER.passFieldName(), List.of()),
+                    filters.getOrDefault(PassFilterCommandKind.WHITE_PATTERN.passFieldName(), List.of()),
+                    filters.getOrDefault(PassFilterCommandKind.WHITE_ADDRESS.passFieldName(), List.of())
             );
         } catch (Exception e) {
-            return UserFilterWhiteResponse.fail(
+            return GetUserFilterWhiteResponse.fail(
+                    userID,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public GetUserFilterBlackResponse getUserFilterBlack(GetUserFilterBlackRequest request) {
+        String userID = request == null ? null : request.getUserID();
+        String decodeUserID;
+
+        try {
+            decodeUserID = authService.decryptPassUserId(userID);
+        } catch (Exception e) {
+            return GetUserFilterBlackResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        if (!hasText(userID) || !isNumeric(decodeUserID)) {
+            return GetUserFilterBlackResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        try {
+            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+                return GetUserFilterBlackResponse.notJoined();
+            }
+
+            Map<String, List<List<Object>>> filters = filterMapper.selectBlackFiltersByPass(decodeUserID)
+                    .stream()
+                    .collect(Collectors.groupingBy(
+                            PassFilterRowEntity::getFilterGroup,
+                            Collectors.mapping(this::toPassFilterRow, Collectors.toList())
+                    ));
+
+            return GetUserFilterBlackResponse.success(
+                    userID,
+                    filters.getOrDefault("blackNUM", List.of()),
+                    filters.getOrDefault("blackPattern", List.of()),
+                    filters.getOrDefault("blackPrefix", List.of()),
+                    filters.getOrDefault("prefixPool", List.of())
+            );
+        } catch (Exception e) {
+            return GetUserFilterBlackResponse.fail(
                     userID,
                     PassResponseCode.PROCESS_ERROR.getRetCode(),
                     PassResponseCode.PROCESS_ERROR.getRetMsg()
@@ -120,9 +171,9 @@ public class FilterService {
 
             return SetUserFilterWhiteResponse.success(
                     userID,
-                    processWhiteRows(decodeUserID, request.getWhiteNUM(), WhiteFilterKind.NUMBER),
-                    processWhiteRows(decodeUserID, request.getWhitePattern(), WhiteFilterKind.PATTERN),
-                    processWhiteRows(decodeUserID, request.getWhiteNUMAddr(), WhiteFilterKind.ADDRESS)
+                    processFilterRows(decodeUserID, request.getWhiteNUM(), PassFilterCommandKind.WHITE_NUMBER),
+                    processFilterRows(decodeUserID, request.getWhitePattern(), PassFilterCommandKind.WHITE_PATTERN),
+                    processFilterRows(decodeUserID, request.getWhiteNUMAddr(), PassFilterCommandKind.WHITE_ADDRESS)
             );
         } catch (Exception e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
@@ -134,109 +185,189 @@ public class FilterService {
         }
     }
 
-    private List<List<Object>> processWhiteRows(
+    @Transactional
+    public SetUserFilterBlackResponse setUserFilterBlack(SetUserFilterBlackRequest request) {
+        String userID = request == null ? null : request.getUserID();
+        String decodeUserID;
+
+        try {
+            decodeUserID = authService.decryptPassUserId(userID);
+        } catch (Exception e) {
+            return SetUserFilterBlackResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        if (!hasText(userID) || !isNumeric(decodeUserID) || !isValidSetUserFilterBlackRequest(request)) {
+            return SetUserFilterBlackResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        try {
+            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+                return SetUserFilterBlackResponse.notJoined();
+            }
+
+            return SetUserFilterBlackResponse.success(
+                    userID,
+                    processFilterRows(decodeUserID, request.getBlackNUM(), PassFilterCommandKind.BLACK_NUMBER),
+                    processFilterRows(decodeUserID, request.getBlackPattern(), PassFilterCommandKind.BLACK_PATTERN),
+                    processFilterRows(decodeUserID, request.getBlackPrefix(), PassFilterCommandKind.BLACK_PREFIX)
+            );
+        } catch (Exception e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return SetUserFilterBlackResponse.fail(
+                    userID,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
+        }
+    }
+
+    private List<List<Object>> processFilterRows(
             String decodeUserID,
             List<List<Object>> requestRows,
-            WhiteFilterKind filterKind
+            PassFilterCommandKind filterKind
     ) {
         if (requestRows.isEmpty()) {
             return List.of();
         }
 
         return requestRows.stream()
-                .map(requestRow -> processWhiteRow(decodeUserID, requestRow, filterKind))
+                .map(requestRow -> processFilterRow(decodeUserID, requestRow, filterKind))
                 .toList();
     }
 
-    private List<Object> processWhiteRow(String decodeUserID, List<Object> requestRow, WhiteFilterKind filterKind) {
-        WhiteFilterCommand command = WhiteFilterCommand.fromPassRow(decodeUserID, requestRow);
+    private List<Object> processFilterRow(String decodeUserID, List<Object> requestRow, PassFilterCommandKind filterKind) {
+        PassFilterCommand command = PassFilterCommand.fromPassRow(decodeUserID, requestRow);
         String saveDt = nowPassDate();
 
         if (!command.isValidFor(filterKind)) {
-            return WhiteFilterCommandResult.of(
+            return PassFilterCommandResult.of(
                     command,
-                    WhiteFilterCommandResult.INVALID_REQUEST,
+                    PassFilterCommandResult.INVALID_REQUEST,
                     command.id(),
                     ""
             ).toPassRow();
         }
 
         if (command.needsStoredData() && hasWhiteDuplicate(command, filterKind)) {
-            return WhiteFilterCommandResult.of(
+            return PassFilterCommandResult.of(
                     command,
-                    WhiteFilterCommandResult.DUPLICATED_WHITE,
+                    PassFilterCommandResult.DUPLICATED_WHITE,
                     command.id(),
                     ""
             ).toPassRow();
         }
 
         if (command.needsStoredData() && hasBlackDuplicate(command, filterKind)) {
-            return WhiteFilterCommandResult.of(
+            return PassFilterCommandResult.of(
                     command,
-                    WhiteFilterCommandResult.DUPLICATED_BLACK,
+                    PassFilterCommandResult.DUPLICATED_BLACK,
                     command.id(),
                     ""
             ).toPassRow();
         }
 
-        UserWhiteFilterCommandEntity entity = command.toEntity(saveDt);
-        int affectedRows = executeWhiteCommand(entity, command.cmdType(), filterKind);
-        int result = affectedRows > 0 ? WhiteFilterCommandResult.SUCCESS : WhiteFilterCommandResult.FAILED;
+        PassFilterCommandEntity entity = command.toEntity(saveDt);
+        int affectedRows = executeFilterCommand(entity, command.cmdType(), filterKind);
+        int result = affectedRows > 0 ? PassFilterCommandResult.SUCCESS : PassFilterCommandResult.FAILED;
 
-        return WhiteFilterCommandResult.of(command, result, entity.getId(), saveDt).toPassRow();
+        return PassFilterCommandResult.of(command, result, entity.getId(), saveDt).toPassRow();
     }
 
-    private boolean hasWhiteDuplicate(WhiteFilterCommand command, WhiteFilterKind filterKind) {
+    private boolean hasWhiteDuplicate(PassFilterCommand command, PassFilterCommandKind filterKind) {
         String excludeId = command.isUpdate() ? command.id() : null;
         return switch (filterKind) {
-            case NUMBER -> filterMapper.countWhiteNumberByData(command.custNum(), command.data(), excludeId) > 0;
-            case PATTERN -> filterMapper.countWhitePatternByData(command.custNum(), command.data(), excludeId) > 0;
-            case ADDRESS -> filterMapper.countWhiteAddressByData(command.custNum(), command.data(), excludeId) > 0;
+            case WHITE_NUMBER, BLACK_NUMBER -> filterMapper.countWhiteNumberByData(command.custNum(), command.data(), excludeId) > 0;
+            case WHITE_PATTERN, BLACK_PATTERN -> filterMapper.countWhitePatternByData(command.custNum(), command.data(), excludeId) > 0;
+            case WHITE_ADDRESS -> filterMapper.countWhiteAddressByData(command.custNum(), command.data(), excludeId) > 0;
+            case BLACK_PREFIX -> false;
         };
     }
 
-    private boolean hasBlackDuplicate(WhiteFilterCommand command, WhiteFilterKind filterKind) {
-        // Blacklist table names and columns are required to implement result -3 accurately.
-        return false;
-    }
-
-    private int executeWhiteCommand(UserWhiteFilterCommandEntity entity, Integer cmdType, WhiteFilterKind filterKind) {
+    private boolean hasBlackDuplicate(PassFilterCommand command, PassFilterCommandKind filterKind) {
+        String excludeId = command.isUpdate() ? command.id() : null;
         return switch (filterKind) {
-            case NUMBER -> executeWhiteNumberCommand(entity, cmdType);
-            case PATTERN -> executeWhitePatternCommand(entity, cmdType);
-            case ADDRESS -> executeWhiteAddressCommand(entity, cmdType);
+            case WHITE_NUMBER, BLACK_NUMBER -> filterMapper.countBlackNumberByData(command.custNum(), command.data(), excludeId) > 0;
+            case WHITE_PATTERN, BLACK_PATTERN -> filterMapper.countBlackPatternByData(command.custNum(), command.data(), excludeId) > 0;
+            case WHITE_ADDRESS -> false;
+            case BLACK_PREFIX -> filterMapper.countBlackPrefixByData(command.custNum(), command.data(), excludeId) > 0;
         };
     }
 
-    private int executeWhiteNumberCommand(UserWhiteFilterCommandEntity entity, Integer cmdType) {
+    private int executeFilterCommand(PassFilterCommandEntity entity, Integer cmdType, PassFilterCommandKind filterKind) {
+        return switch (filterKind) {
+            case WHITE_NUMBER -> executeWhiteNumberCommand(entity, cmdType);
+            case WHITE_PATTERN -> executeWhitePatternCommand(entity, cmdType);
+            case WHITE_ADDRESS -> executeWhiteAddressCommand(entity, cmdType);
+            case BLACK_NUMBER -> executeBlackNumberCommand(entity, cmdType);
+            case BLACK_PATTERN -> executeBlackPatternCommand(entity, cmdType);
+            case BLACK_PREFIX -> executeBlackPrefixCommand(entity, cmdType);
+        };
+    }
+
+    private int executeWhiteNumberCommand(PassFilterCommandEntity entity, Integer cmdType) {
         return switch (cmdType) {
-            case WhiteFilterCommand.CMD_CREATE -> filterMapper.insertWhiteNumber(entity);
-            case WhiteFilterCommand.CMD_DELETE -> filterMapper.deleteWhiteNumber(entity.getCustNum(), entity.getId());
-            case WhiteFilterCommand.CMD_UPDATE -> filterMapper.updateWhiteNumber(entity);
+            case PassFilterCommand.CMD_CREATE -> filterMapper.insertWhiteNumber(entity);
+            case PassFilterCommand.CMD_DELETE -> filterMapper.deleteWhiteNumber(entity.getCustNum(), entity.getId());
+            case PassFilterCommand.CMD_UPDATE -> filterMapper.updateWhiteNumber(entity);
             default -> 0;
         };
     }
 
-    private int executeWhitePatternCommand(UserWhiteFilterCommandEntity entity, Integer cmdType) {
+    private int executeWhitePatternCommand(PassFilterCommandEntity entity, Integer cmdType) {
         return switch (cmdType) {
-            case WhiteFilterCommand.CMD_CREATE -> filterMapper.insertWhitePattern(entity);
-            case WhiteFilterCommand.CMD_DELETE -> filterMapper.deleteWhitePattern(entity.getCustNum(), entity.getId());
-            case WhiteFilterCommand.CMD_UPDATE -> filterMapper.updateWhitePattern(entity);
+            case PassFilterCommand.CMD_CREATE -> filterMapper.insertWhitePattern(entity);
+            case PassFilterCommand.CMD_DELETE -> filterMapper.deleteWhitePattern(entity.getCustNum(), entity.getId());
+            case PassFilterCommand.CMD_UPDATE -> filterMapper.updateWhitePattern(entity);
             default -> 0;
         };
     }
 
-    private int executeWhiteAddressCommand(UserWhiteFilterCommandEntity entity, Integer cmdType) {
+    private int executeWhiteAddressCommand(PassFilterCommandEntity entity, Integer cmdType) {
         return switch (cmdType) {
-            case WhiteFilterCommand.CMD_CREATE -> filterMapper.insertWhiteAddress(entity);
-            case WhiteFilterCommand.CMD_DELETE -> filterMapper.deleteWhiteAddress(entity.getCustNum(), entity.getId());
-            case WhiteFilterCommand.CMD_UPDATE -> filterMapper.updateWhiteAddress(entity);
+            case PassFilterCommand.CMD_CREATE -> filterMapper.insertWhiteAddress(entity);
+            case PassFilterCommand.CMD_DELETE -> filterMapper.deleteWhiteAddress(entity.getCustNum(), entity.getId());
+            case PassFilterCommand.CMD_UPDATE -> filterMapper.updateWhiteAddress(entity);
             default -> 0;
         };
     }
 
-    private List<Object> toPassFilterRow(UserWhiteFilterEntity entity) {
-        return WhiteFilterResponseRow.fromEntity(entity).toPassRow();
+    private int executeBlackNumberCommand(PassFilterCommandEntity entity, Integer cmdType) {
+        return switch (cmdType) {
+            case PassFilterCommand.CMD_CREATE -> filterMapper.insertBlackNumber(entity);
+            case PassFilterCommand.CMD_DELETE -> filterMapper.deleteBlackNumber(entity.getCustNum(), entity.getId());
+            case PassFilterCommand.CMD_UPDATE -> filterMapper.updateBlackNumber(entity);
+            default -> 0;
+        };
+    }
+
+    private int executeBlackPatternCommand(PassFilterCommandEntity entity, Integer cmdType) {
+        return switch (cmdType) {
+            case PassFilterCommand.CMD_CREATE -> filterMapper.insertBlackPattern(entity);
+            case PassFilterCommand.CMD_DELETE -> filterMapper.deleteBlackPattern(entity.getCustNum(), entity.getId());
+            case PassFilterCommand.CMD_UPDATE -> filterMapper.updateBlackPattern(entity);
+            default -> 0;
+        };
+    }
+
+    private int executeBlackPrefixCommand(PassFilterCommandEntity entity, Integer cmdType) {
+        return switch (cmdType) {
+            case PassFilterCommand.CMD_CREATE -> filterMapper.insertBlackPrefix(entity);
+            case PassFilterCommand.CMD_DELETE -> filterMapper.deleteBlackPrefix(entity.getCustNum(), entity.getId());
+            case PassFilterCommand.CMD_UPDATE -> filterMapper.updateBlackPrefix(entity);
+            default -> 0;
+        };
+    }
+
+    private List<Object> toPassFilterRow(PassFilterRowEntity entity) {
+        return PassFilterResponseRow.fromEntity(entity).toPassRow();
     }
 
     private boolean hasText(String value) {
@@ -252,6 +383,13 @@ public class FilterService {
                 && request.getWhiteNUM() != null
                 && request.getWhitePattern() != null
                 && request.getWhiteNUMAddr() != null;
+    }
+
+    private boolean isValidSetUserFilterBlackRequest(SetUserFilterBlackRequest request) {
+        return request != null
+                && request.getBlackNUM() != null
+                && request.getBlackPattern() != null
+                && request.getBlackPrefix() != null;
     }
 
     private String nowPassDate() {
