@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.agw.domain.spam.PassSpamMessageMapper">
+
+    <select id="selectSpamMessagesByPass" resultType="com.company.agw.domain.spam.PassSpamMessageEntity">
+        SELECT
+            sms_seq,
+            sms_clc,
+            cb_num,
+            src_num,
+            sms_kind,
+            filter_kind,
+            spam_word,
+            prv_kind,
+            sms_leng,
+            sms_msg,
+            cb_url,
+            cust_num,
+            image_file_name,
+            spam_pattern1,
+            spam_pattern2,
+            spam_pattern3,
+            tel_id,
+            msg_origination
+        FROM customer_spam_message
+        WHERE cust_num = #{decodeUserID}
+          AND (
+              (sms_kind = '4' AND sms_clc &gt;= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 7 DAY), '%Y%m%d%H%i%s'))
+              OR (sms_kind != '4' AND sms_clc &gt;= DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 90 DAY), '%Y%m%d%H%i%s'))
+          )
+        ORDER BY sms_clc DESC
+        LIMIT #{maxMsgCnt}
+    </select>
+
+    <select id="selectSpamFileByPass" resultType="com.company.agw.domain.spam.PassSpamFileEntity">
+        SELECT
+            sms_seq,
+            image_decoding_key,
+            save_dt,
+            image_file_name,
+            cb_num
+        FROM customer_spam_message
+        WHERE cust_num = #{decodeUserID}
+          AND sms_seq = #{seqNO}
+    </select>
+
+    <select id="selectTelIdByPass" resultType="java.lang.String">
+        SELECT tel_id
+        FROM customer_spam_message
+        WHERE cust_num = #{decodeUserID}
+          AND sms_seq = #{seqNO}
+    </select>
+
+    <delete id="deleteSpamMessageBySeqNo">
+        DELETE FROM customer_spam_message
+        WHERE sms_seq = #{seqNO}
+    </delete>
+
+    <delete id="deleteSpamMessagesByCustNum">
+        DELETE FROM customer_spam_message
+        WHERE cust_num = #{decodeUserID}
+    </delete>
+
+    <insert id="insertRemoveSpamMsgHistory">
+        INSERT INTO tworld_configurations_history (
+            job_dt,
+            usr_id,
+            cust_num,
+            job_kind,
+            rst,
+            job_msg
+        ) VALUES (
+            DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
+            'PASS',
+            #{custNum},
+            '26',
+            #{rst},
+            #{jobMsg}
+        )
+    </insert>
+</mapper>

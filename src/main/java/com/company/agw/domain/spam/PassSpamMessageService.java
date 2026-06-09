@@ -1,0 +1,393 @@
+package com.company.agw.domain.spam;
+
+import com.company.agw.auth.AuthService;
+import com.company.agw.common.response.PassResponseCode;
+import com.company.agw.domain.user.UserMapper;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.web.reactive.function.client.WebClient;
+
+@Service
+@RequiredArgsConstructor
+public class PassSpamMessageService {
+
+    private static final int PASS_MAX_SIZE = 200;
+    private static final int IMAGE_RETENTION_DAYS = 7;
+    private static final DateTimeFormatter PASS_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+
+    private final AuthService authService;
+    private final PassSpamMessageMapper passSpamMessageMapper;
+    private final UserMapper userMapper;
+    private final WebClient.Builder webClientBuilder;
+
+    @Transactional(readOnly = true)
+    public GetSpamMsgListResponse getSpamMsgList(GetSpamMsgListRequest request) {
+        String userID = request == null ? null : request.getUserID();
+        String decodeUserID;
+
+        try {
+            decodeUserID = authService.decryptPassUserId(userID);
+        } catch (Exception e) {
+            return GetSpamMsgListResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        if (!hasText(userID) || !isNumeric(decodeUserID)) {
+            return GetSpamMsgListResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        try {
+            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+                return GetSpamMsgListResponse.notJoined();
+            }
+
+            List<List<Object>> spamMsgList = passSpamMessageMapper.selectSpamMessagesByPass(decodeUserID, PASS_MAX_SIZE)
+                    .stream()
+                    .map(this::toPassSpamMessageRow)
+                    .toList();
+
+            return GetSpamMsgListResponse.success(userID, spamMsgList);
+        } catch (Exception e) {
+            return GetSpamMsgListResponse.fail(
+                    userID,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public GetSpamFileDataResponse getSpamFileData(GetSpamFileDataRequest request) {
+        String userID = request == null ? null : request.getUserID();
+        String seqNO = request == null ? null : request.getSeqNO();
+        String decodeUserID;
+
+        try {
+            decodeUserID = authService.decryptPassUserId(userID);
+        } catch (Exception e) {
+            return GetSpamFileDataResponse.fail(
+                    userID,
+                    seqNO,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        if (!hasText(userID)
+                || !isNumeric(decodeUserID)
+                || !isValidGetSpamFileDataRequest(request)) {
+            return GetSpamFileDataResponse.fail(
+                    userID,
+                    seqNO,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        try {
+            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+                return GetSpamFileDataResponse.notJoined(seqNO);
+            }
+
+            String fileName = request.getFileName().trim();
+            if (!"8".equals(request.getMsgType())) {
+                PassSpamFileEntity spamFile = passSpamMessageMapper.selectSpamFileByPass(decodeUserID, seqNO);
+                if (spamFile == null) {
+                    return GetSpamFileDataResponse.fail(
+                            userID,
+                            seqNO,
+                            PassResponseCode.RESTORE_MESSAGE_NOT_FOUND.getRetCode(),
+                            PassResponseCode.RESTORE_MESSAGE_NOT_FOUND.getRetMsg()
+                    );
+                }
+                if (isExpired(spamFile.getSaveDt(), IMAGE_RETENTION_DAYS)) {
+                    return GetSpamFileDataResponse.fail(
+                            userID,
+                            seqNO,
+                            PassResponseCode.IMAGE_EXPIRED.getRetCode(),
+                            PassResponseCode.IMAGE_EXPIRED.getRetMsg()
+                    );
+                }
+                fileName = selectRequestedFileName(fileName, spamFile.getImageFileName());
+            }
+
+            String fileData = readFileDataAsBase64(fileName);
+            return GetSpamFileDataResponse.success(userID, seqNO, List.of(Map.of(fileName, fileData)));
+        } catch (Exception e) {
+            return GetSpamFileDataResponse.fail(
+                    userID,
+                    seqNO,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
+        }
+    }
+
+    @Transactional
+    public RemoveSpamMsgResponse removeSpamMsg(RemoveSpamMsgRequest request) {
+        String userID = request == null ? null : request.getUserID();
+        String decodeUserID;
+
+        try {
+            decodeUserID = authService.decryptPassUserId(userID);
+        } catch (Exception e) {
+            return RemoveSpamMsgResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        if (!hasText(userID)
+                || !isNumeric(decodeUserID)
+                || !isValidRemoveSpamMsgRequest(request)) {
+            return RemoveSpamMsgResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        try {
+            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+                return RemoveSpamMsgResponse.notJoined();
+            }
+
+            if ("8".equals(request.getMsgType())) {
+                String telId = resolveRcsMessageId(decodeUserID, request.getSeqNO());
+                if (!hasText(telId)) {
+                    return RemoveSpamMsgResponse.fail(
+                            userID,
+                            PassResponseCode.DELETE_MESSAGE_NOT_FOUND.getRetCode(),
+                            PassResponseCode.DELETE_MESSAGE_NOT_FOUND.getRetMsg()
+                    );
+                }
+
+                return RemoveSpamMsgResponse.fail(
+                        userID,
+                        PassResponseCode.UNSUPPORTED_FEATURE.getRetCode(),
+                        PassResponseCode.UNSUPPORTED_FEATURE.getRetMsg()
+                );
+            }
+
+            int affectedRows = "all".equalsIgnoreCase(request.getSeqNO())
+                    ? passSpamMessageMapper.deleteSpamMessagesByCustNum(decodeUserID)
+                    : passSpamMessageMapper.deleteSpamMessageBySeqNo(request.getSeqNO());
+
+            if (affectedRows < 1 && !"all".equalsIgnoreCase(request.getSeqNO())) {
+                return RemoveSpamMsgResponse.fail(
+                        userID,
+                        PassResponseCode.DELETE_MESSAGE_NOT_FOUND.getRetCode(),
+                        PassResponseCode.DELETE_MESSAGE_NOT_FOUND.getRetMsg()
+                );
+            }
+
+            RemoveSpamMsgResponse response = RemoveSpamMsgResponse.success(userID);
+            passSpamMessageMapper.insertRemoveSpamMsgHistory(
+                    decodeUserID,
+                    String.valueOf(response.getRetCode()),
+                    response.getRetMsg()
+            );
+            return response;
+        } catch (Exception e) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return RemoveSpamMsgResponse.fail(
+                    userID,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
+        }
+    }
+
+    private List<Object> toPassSpamMessageRow(PassSpamMessageEntity entity) {
+        String smsClc = defaultText(entity.getSmsClc());
+        List<Object> row = new ArrayList<>();
+        row.add(defaultText(entity.getSmsSeq()));
+        row.add(defaultText(entity.getSmsKind()));
+        row.add(defaultText(entity.getCbNum()));
+        row.add(toPassDate(smsClc));
+        row.add(toPassTime(smsClc));
+        row.add(defaultText(entity.getCbUrl()));
+        row.add(defaultText(entity.getFilterKind()));
+        row.add(toPassBlockReason(entity.getFilterKind(), entity.getSpamWord()));
+        row.add(defaultText(entity.getSmsMsg()));
+        row.add(defaultText(entity.getImageFileName()));
+        return row;
+    }
+
+    private String toPassDate(String smsClc) {
+        if (smsClc.length() < 8) {
+            return "";
+        }
+
+        return smsClc.substring(0, 8);
+    }
+
+    private String toPassTime(String smsClc) {
+        if (smsClc.length() < 14) {
+            return smsClc.length() >= 8 ? smsClc.substring(8) : "";
+        }
+
+        return smsClc.substring(8, 14);
+    }
+
+    private String toPassBlockReason(String filterKind, String spamWord) {
+        if ("P".equals(filterKind)) {
+            return "경찰청 차단";
+        }
+
+        if ("b".equals(filterKind) || "c".equals(filterKind) || "d".equals(filterKind)) {
+            return defaultText(spamWord);
+        }
+
+        return "운영자 지능형 스팸 차단";
+    }
+
+    private String selectRequestedFileName(String requestFileName, String savedFileNames) {
+        if (!hasText(savedFileNames)) {
+            return requestFileName;
+        }
+
+        for (String savedFileName : savedFileNames.split("[;,]")) {
+            String trimmedSavedFileName = savedFileName.trim();
+            if (trimmedSavedFileName.equals(requestFileName)
+                    || fileNameOnly(trimmedSavedFileName).equals(requestFileName)) {
+                return trimmedSavedFileName;
+            }
+        }
+
+        return requestFileName;
+    }
+
+    private String fileNameOnly(String value) {
+        try {
+            if (value.startsWith("http://") || value.startsWith("https://")) {
+                String path = URI.create(value).getPath();
+                int index = path.lastIndexOf('/');
+                return index < 0 ? path : path.substring(index + 1);
+            }
+
+            return Path.of(value).getFileName().toString();
+        } catch (Exception e) {
+            return value;
+        }
+    }
+
+    private String readFileDataAsBase64(String fileName) {
+        byte[] fileBytes;
+        if (fileName.startsWith("http://") || fileName.startsWith("https://")) {
+            fileBytes = webClientBuilder.build()
+                    .get()
+                    .uri(URI.create(fileName))
+                    .retrieve()
+                    .bodyToMono(byte[].class)
+                    .block();
+        } else {
+            try {
+                fileBytes = Files.readAllBytes(Path.of(fileName));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Failed to read file data", e);
+            }
+        }
+
+        if (fileBytes == null) {
+            throw new IllegalArgumentException("File data is empty");
+        }
+
+        return Base64.getEncoder().encodeToString(fileBytes);
+    }
+
+    private boolean isValidGetSpamFileDataRequest(GetSpamFileDataRequest request) {
+        return request != null
+                && hasText(request.getMsgType())
+                && hasText(request.getSeqNO())
+                && hasText(request.getFileName())
+                && isValidMsgType(request.getMsgType())
+                && byteLength(request.getSeqNO()) <= 40;
+    }
+
+    private boolean isValidRemoveSpamMsgRequest(RemoveSpamMsgRequest request) {
+        return request != null
+                && hasText(request.getMsgType())
+                && hasText(request.getSeqNO())
+                && isValidMsgType(request.getMsgType())
+                && ("all".equalsIgnoreCase(request.getSeqNO()) || byteLength(request.getSeqNO()) <= 40);
+    }
+
+    private String resolveRcsMessageId(String decodeUserID, String seqNO) {
+        if (!"all".equalsIgnoreCase(seqNO)) {
+            String telId = passSpamMessageMapper.selectTelIdByPass(decodeUserID, seqNO);
+            return hasText(telId) ? telId : seqNO;
+        }
+
+        return seqNO;
+    }
+
+    private boolean isValidMsgType(String msgType) {
+        return "1".equals(msgType)
+                || "3".equals(msgType)
+                || "4".equals(msgType)
+                || "5".equals(msgType)
+                || "8".equals(msgType);
+    }
+
+    private boolean isExpired(String saveDt, int retentionDays) {
+        if (!hasText(saveDt)) {
+            return false;
+        }
+
+        try {
+            LocalDateTime savedAt = LocalDateTime.parse(normalizeDateTime(saveDt), PASS_DATE_TIME_FORMATTER);
+            return savedAt.plusDays(retentionDays).isBefore(LocalDateTime.now());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String normalizeDateTime(String value) {
+        String digits = value.chars()
+                .filter(Character::isDigit)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
+        if (digits.length() >= 14) {
+            return digits.substring(0, 14);
+        }
+
+        return String.format("%-14s", digits).replace(' ', '0');
+    }
+
+    private int byteLength(String value) {
+        return value == null ? 0 : value.getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    private String defaultText(String value) {
+        return value == null ? "" : value;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private boolean isNumeric(String value) {
+        return hasText(value) && value.chars().allMatch(Character::isDigit);
+    }
+}

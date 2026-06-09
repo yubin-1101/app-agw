@@ -1,0 +1,360 @@
+{
+  "info": {
+    "_postman_id": "7be4177b-9a95-4a89-9785-f0f2fc2267ce",
+    "name": "AGW PASS v1 API",
+    "description": "Postman collection for AGW PASS v1 APIs implemented in this project. Set baseUrl and encryptedUserID before sending requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "encryptedUserID",
+      "value": "yVNVzsmdWCRNQ/L+tnVb2g=="
+    },
+    {
+      "key": "seqNO",
+      "value": "9040182026012719404499348"
+    },
+    {
+      "key": "msgType",
+      "value": "8"
+    },
+    {
+      "key": "fileName",
+      "value": "/path/to/file.jpg"
+    }
+  ],
+  "item": [
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "getUserInfo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getUserInfo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getUserInfo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('has retCode', function () {",
+                  "  pm.expect(pm.response.json()).to.have.property('retCode');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "setUserInfo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\",\n  \"userState\": [1, 1, 0, 0, 0, 1, 0, 0, 0, 0],\n  \"referenceFilterValue\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/setUserInfo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "setUserInfo"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter",
+      "item": [
+        {
+          "name": "getUserfilterWhite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getUserfilterWhite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getUserfilterWhite"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getUserfilterBlack",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getUserfilterBlack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getUserfilterBlack"
+              ]
+            }
+          }
+        },
+        {
+          "name": "setUserfilterWhite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\",\n  \"whiteNUM\": [],\n  \"whitePattern\": [],\n  \"whiteNUMAddr\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/setUserfilterWhite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "setUserfilterWhite"
+              ]
+            }
+          }
+        },
+        {
+          "name": "setUserfilterBlack",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\",\n  \"blackNUM\": [],\n  \"blackPattern\": [],\n  \"blackPrefix\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/setUserfilterBlack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "setUserfilterBlack"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Spam",
+      "item": [
+        {
+          "name": "getSpamMsgList",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getSpamMsgList",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getSpamMsgList"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('has spam list fields', function () {",
+                  "  pm.expect(json).to.have.property('retCode');",
+                  "  pm.expect(json).to.have.property('spamListCnt');",
+                  "  pm.expect(json).to.have.property('spamMsgList');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getSpamFileData",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\",\n  \"msgType\": \"{{msgType}}\",\n  \"seqNO\": \"{{seqNO}}\",\n  \"fileName\": \"{{fileName}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getSpamFileData",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getSpamFileData"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('has file data fields', function () {",
+                  "  pm.expect(json).to.have.property('retCode');",
+                  "  pm.expect(json).to.have.property('seqNO');",
+                  "  pm.expect(json).to.have.property('fileData');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "removeSpamMsg",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{encryptedUserID}}\",\n  \"msgType\": \"{{msgType}}\",\n  \"seqNO\": \"{{seqNO}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/removeSpamMsg",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "removeSpamMsg"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.test('has remove response fields', function () {",
+                  "  pm.expect(json).to.have.property('userID');",
+                  "  pm.expect(json).to.have.property('retCode');",
+                  "  pm.expect(json).to.have.property('retMsg');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -14,11 +14,6 @@ public interface SpamMessageMapper {
             @Param("limit") int limit
     );
 
-    List<PassSpamMessageEntity> selectSpamMessagesByPass(
-            @Param("decodeUserID") String decodeUserID,
-            @Param("maxMsgCnt") int maxMsgCnt
-    );
-
     SpamMessageEntity selectSpamMessage(@Param("userId") String userId, @Param("messageId") String messageId);
 
     int updateDeleted(@Param("userId") String userId, @Param("messageId") String messageId);

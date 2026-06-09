@@ -12,8 +12,13 @@ import com.company.agw.domain.filter.SetUserFilterBlackRequest;
 import com.company.agw.domain.filter.SetUserFilterBlackResponse;
 import com.company.agw.domain.filter.SetUserFilterWhiteRequest;
 import com.company.agw.domain.filter.SetUserFilterWhiteResponse;
+import com.company.agw.domain.spam.GetSpamFileDataRequest;
+import com.company.agw.domain.spam.GetSpamFileDataResponse;
 import com.company.agw.domain.spam.GetSpamMsgListRequest;
 import com.company.agw.domain.spam.GetSpamMsgListResponse;
+import com.company.agw.domain.spam.PassSpamMessageService;
+import com.company.agw.domain.spam.RemoveSpamMsgRequest;
+import com.company.agw.domain.spam.RemoveSpamMsgResponse;
 import com.company.agw.domain.spam.SpamMessageListRequest;
 import com.company.agw.domain.spam.SpamMessageListResponse;
 import com.company.agw.domain.spam.SpamMessageService;
@@ -40,6 +45,7 @@ public class PassExternalController {
 
     private final UserService userService;
     private final FilterService filterService;
+    private final PassSpamMessageService passSpamMessageService;
     private final SpamMessageService spamMessageService;
 
     @AopLogInfo(menuPath = "PASS > 사용자 > 상태 조회", action = LogAction.SEARCH)
@@ -133,7 +139,33 @@ public class PassExternalController {
             @RequestBody GetSpamMsgListRequest request,
             HttpServletRequest httpRequest
     ) {
-        GetSpamMsgListResponse response = spamMessageService.getSpamMsgList(request);
+        GetSpamMsgListResponse response = passSpamMessageService.getSpamMsgList(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 스팸 메시지 > 파일 다운로드", action = LogAction.SEARCH)
+    @PostMapping("/v1/getSpamFileData")
+    public GetSpamFileDataResponse getSpamFileData(
+            @RequestBody GetSpamFileDataRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        GetSpamFileDataResponse response = passSpamMessageService.getSpamFileData(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 스팸 메시지 > 삭제", action = LogAction.DELETE)
+    @PostMapping("/v1/removeSpamMsg")
+    public RemoveSpamMsgResponse removeSpamMsg(
+            @RequestBody RemoveSpamMsgRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        RemoveSpamMsgResponse response = passSpamMessageService.removeSpamMsg(request);
         httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());

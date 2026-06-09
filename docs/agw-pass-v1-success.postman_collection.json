@@ -1,0 +1,481 @@
+{
+  "info": {
+    "_postman_id": "9b80b00a-0f0e-4a57-a0a0-0d676c8a2b0d",
+    "name": "AGW PASS v1 - Success Tests",
+    "description": "Success-case collection for implemented PASS v1 APIs. The collection-level test asserts HTTP 200, JSON response, retCode=1000, and retMsg. Update collection variables to values that exist in the current DB/storage before running. getSpamFileData requires an accessible file/storage path. removeSpamMsg is destructive and deletes the configured message.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "let json;",
+          "",
+          "pm.test('HTTP status is 200', function () {",
+          "  pm.response.to.have.status(200);",
+          "});",
+          "",
+          "pm.test('response body is JSON object', function () {",
+          "  json = pm.response.json();",
+          "  pm.expect(json).to.be.an('object');",
+          "});",
+          "",
+          "pm.test('retCode is 1000', function () {",
+          "  pm.expect(json).to.have.property('retCode', 1000);",
+          "});",
+          "",
+          "pm.test('retMsg exists', function () {",
+          "  pm.expect(json).to.have.property('retMsg');",
+          "  pm.expect(json.retMsg).to.be.a('string');",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "getUserInfo - success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('user response fields exist', function () {",
+                  "  pm.expect(json).to.have.property('userID', 'yVNVzsmdWCRNQ/L+tnVb2g==');",
+                  "  pm.expect(json.userState).to.be.an('array').with.lengthOf(10);",
+                  "  pm.expect(json).to.have.property('referenceFilterValue');",
+                  "  pm.expect(json).to.have.property('userInfo');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getUserInfo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getUserInfo"
+              ]
+            }
+          }
+        },
+        {
+          "name": "setUserInfo - success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('setUserInfo response userID matches request', function () {",
+                  "  pm.expect(json).to.have.property('userID', 'yVNVzsmdWCRNQ/L+tnVb2g==');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\",\n  \"userState\": [1, 1, 0, 0, 0, 1, 0, 0, 0, 0],\n  \"referenceFilterValue\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/setUserInfo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "setUserInfo"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter",
+      "item": [
+        {
+          "name": "getUserfilterWhite - success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('white filter arrays exist', function () {",
+                  "  pm.expect(json.whiteNUM).to.be.an('array');",
+                  "  pm.expect(json.whitePattern).to.be.an('array');",
+                  "  pm.expect(json.whiteNUMAddr).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getUserfilterWhite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getUserfilterWhite"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getUserfilterBlack - success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('black filter arrays exist', function () {",
+                  "  pm.expect(json.blackNUM).to.be.an('array');",
+                  "  pm.expect(json.blackPattern).to.be.an('array');",
+                  "  pm.expect(json.blackPrefix).to.be.an('array');",
+                  "  pm.expect(json.prefixPool).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getUserfilterBlack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getUserfilterBlack"
+              ]
+            }
+          }
+        },
+        {
+          "name": "setUserfilterWhite - success (empty update)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('white update result arrays exist', function () {",
+                  "  pm.expect(json.whiteNUM).to.be.an('array');",
+                  "  pm.expect(json.whitePattern).to.be.an('array');",
+                  "  pm.expect(json.whiteNUMAddr).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\",\n  \"whiteNUM\": [],\n  \"whitePattern\": [],\n  \"whiteNUMAddr\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/setUserfilterWhite",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "setUserfilterWhite"
+              ]
+            }
+          }
+        },
+        {
+          "name": "setUserfilterBlack - success (empty update)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('black update result arrays exist', function () {",
+                  "  pm.expect(json.blackNUM).to.be.an('array');",
+                  "  pm.expect(json.blackPattern).to.be.an('array');",
+                  "  pm.expect(json.blackPrefix).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\",\n  \"blackNUM\": [],\n  \"blackPattern\": [],\n  \"blackPrefix\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/setUserfilterBlack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "setUserfilterBlack"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Spam Message",
+      "item": [
+        {
+          "name": "getSpamMsgList - success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('spam list response shape is valid', function () {",
+                  "  pm.expect(json.spamListCnt).to.be.a('number');",
+                  "  pm.expect(json.spamMsgList).to.be.an('array');",
+                  "  pm.expect(json.spamMsgList.length).to.eql(json.spamListCnt);",
+                  "});",
+                  "",
+                  "pm.test('spam rows use PASS v1 tuple format', function () {",
+                  "  json.spamMsgList.forEach(function (row) {",
+                  "    pm.expect(row).to.be.an('array');",
+                  "    pm.expect(row.length).to.be.at.least(10);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getSpamMsgList",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getSpamMsgList"
+              ]
+            }
+          }
+        },
+        {
+          "name": "getSpamFileData - success",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('file data response shape is valid', function () {",
+                  "  pm.expect(json).to.have.property('seqNO', '9970052025052913192450588');",
+                  "  pm.expect(json.fileData).to.be.an('array');",
+                  "  pm.expect(json.fileData.length).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('fileData contains filename to base64 map', function () {",
+                  "  json.fileData.forEach(function (fileMap) {",
+                  "    pm.expect(fileMap).to.be.an('object');",
+                  "    Object.keys(fileMap).forEach(function (name) {",
+                  "      pm.expect(fileMap[name]).to.be.a('string').and.not.empty;",
+                  "    });",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\",\n  \"msgType\": \"1\",\n  \"seqNO\": \"9970052025052913192450588\",\n  \"fileName\": \"RfA9DaHYnGH27awohXUpheuGP2D2HwYh0dH3QBUku45b5zuSdTw6E5R8otPtbocHRWanqOkeMrrDNWBjCoWZFg==.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/getSpamFileData",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "getSpamFileData"
+              ]
+            }
+          }
+        },
+        {
+          "name": "removeSpamMsg - success (destructive)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test('remove response userID matches request', function () {",
+                  "  pm.expect(json).to.have.property('userID', 'yVNVzsmdWCRNQ/L+tnVb2g==');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "description": "Destructive success test. This request deletes the row configured by removeSeqNO. Use a disposable DB row.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"yVNVzsmdWCRNQ/L+tnVb2g==\",\n  \"msgType\": \"1\",\n  \"seqNO\": \"9970052025052913192450588\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/external/pass/v1/removeSpamMsg",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "external",
+                "pass",
+                "v1",
+                "removeSpamMsg"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}
