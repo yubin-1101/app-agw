@@ -12,6 +12,8 @@ import com.company.agw.domain.filter.SetUserFilterBlackRequest;
 import com.company.agw.domain.filter.SetUserFilterBlackResponse;
 import com.company.agw.domain.filter.SetUserFilterWhiteRequest;
 import com.company.agw.domain.filter.SetUserFilterWhiteResponse;
+import com.company.agw.domain.spam.GetSpamMsgListRequest;
+import com.company.agw.domain.spam.GetSpamMsgListResponse;
 import com.company.agw.domain.spam.SpamMessageListRequest;
 import com.company.agw.domain.spam.SpamMessageListResponse;
 import com.company.agw.domain.spam.SpamMessageService;
@@ -123,6 +125,19 @@ public class PassExternalController {
     @PostMapping("/filters")
     public CommonResponse<FilterListResponse> getFilters(@RequestBody FilterListRequest request) {
         return CommonResponse.success(filterService.getFilters(request));
+    }
+
+    @AopLogInfo(menuPath = "PASS > 스팸 메시지 > 목록 조회", action = LogAction.SEARCH)
+    @PostMapping("/v1/getSpamMsgList")
+    public GetSpamMsgListResponse getSpamMsgList(
+            @RequestBody GetSpamMsgListRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        GetSpamMsgListResponse response = spamMessageService.getSpamMsgList(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
     }
 
     @AopLogInfo(menuPath = "PASS > 스팸 메시지 > 목록 조회", action = LogAction.SEARCH)

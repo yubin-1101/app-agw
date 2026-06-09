@@ -27,6 +27,32 @@
         OFFSET #{offset}
     </select>
 
+    <select id="selectSpamMessagesByPass" resultType="com.company.agw.domain.spam.PassSpamMessageEntity">
+        SELECT
+            sms_seq,
+            sms_clc,
+            cb_num,
+            src_num,
+            sms_kind,
+            filter_kind,
+            spam_word,
+            prv_kind,
+            sms_leng,
+            sms_msg,
+            cb_url,
+            cust_num,
+            image_file_name,
+            spam_pattern1,
+            spam_pattern2,
+            spam_pattern3,
+            tel_id,
+            msg_origination
+        FROM customer_spam_message
+        WHERE cust_num = #{decodeUserID}
+        ORDER BY sms_clc DESC
+        LIMIT #{maxMsgCnt}
+    </select>
+
     <select id="selectSpamMessage" resultType="com.company.agw.domain.spam.SpamMessageEntity">
         SELECT
             spam_seq,
