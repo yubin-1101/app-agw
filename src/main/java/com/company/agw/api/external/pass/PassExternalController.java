@@ -12,11 +12,16 @@ import com.company.agw.domain.filter.SetUserFilterBlackRequest;
 import com.company.agw.domain.filter.SetUserFilterBlackResponse;
 import com.company.agw.domain.filter.SetUserFilterWhiteRequest;
 import com.company.agw.domain.filter.SetUserFilterWhiteResponse;
+import com.company.agw.domain.report.PassReportSpamMsgRequest;
+import com.company.agw.domain.report.PassReportSpamMsgResponse;
+import com.company.agw.domain.report.PassSpamReportService;
 import com.company.agw.domain.spam.GetSpamFileDataRequest;
 import com.company.agw.domain.spam.GetSpamFileDataResponse;
 import com.company.agw.domain.spam.GetSpamMsgListRequest;
 import com.company.agw.domain.spam.GetSpamMsgListResponse;
 import com.company.agw.domain.spam.PassSpamMessageService;
+import com.company.agw.domain.spam.RecoverySpamMsgRequest;
+import com.company.agw.domain.spam.RecoverySpamMsgResponse;
 import com.company.agw.domain.spam.RemoveSpamMsgRequest;
 import com.company.agw.domain.spam.RemoveSpamMsgResponse;
 import com.company.agw.domain.spam.SpamMessageListRequest;
@@ -46,6 +51,7 @@ public class PassExternalController {
     private final UserService userService;
     private final FilterService filterService;
     private final PassSpamMessageService passSpamMessageService;
+    private final PassSpamReportService passSpamReportService;
     private final SpamMessageService spamMessageService;
 
     @AopLogInfo(menuPath = "PASS > 사용자 > 상태 조회", action = LogAction.SEARCH)
@@ -166,6 +172,32 @@ public class PassExternalController {
             HttpServletRequest httpRequest
     ) {
         RemoveSpamMsgResponse response = passSpamMessageService.removeSpamMsg(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 스팸 메시지 > 복구", action = LogAction.UPDATE)
+    @PostMapping("/v1/recoverySpamMsg")
+    public RecoverySpamMsgResponse recoverySpamMsg(
+            @RequestBody RecoverySpamMsgRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        RecoverySpamMsgResponse response = passSpamMessageService.recoverySpamMsg(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 스팸 메시지 > 간편 신고", action = LogAction.CREATE)
+    @PostMapping("/v1/reportSpamMsg")
+    public PassReportSpamMsgResponse reportSpamMsg(
+            @RequestBody PassReportSpamMsgRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        PassReportSpamMsgResponse response = passSpamReportService.reportSpamMsg(request);
         httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());

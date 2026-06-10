@@ -22,11 +22,14 @@ mybatis:
 
 external:
   kisa:
-    base-url: https://example-kisa-api
+    base-url: http://172.1.70.11:8087
+    report-path: /mmsw25/mm7
   mmsc:
-    base-url: https://example-mmsc-api
+    base-url: http://210.217.178.117:7300
   rcs:
-    base-url: https://example-rcs-api
+    base-url: http://10.10.10.81:31528
+    username: sptek
+    password: 01D13CB0E2E24AF62BDCD45E16784BDF2E47156176A3442EF86D0F5D0F034B60
 
 logging:
   level:

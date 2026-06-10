@@ -37,4 +37,76 @@
             updated_at = NOW()
         WHERE user_seq = #{userSeq}
     </update>
+
+    <select id="selectUserPrivateInfobyPass" resultType="com.company.agw.domain.user.PassUserInfoEntity">
+        SELECT
+            cust_num,
+            auth_kind,
+            filter_kind,
+            email_kind,
+            email_addr1,
+            addr_flag,
+            kisa_agree,
+            addr_dt,
+            cb_sms_flag,
+            cb_sms_term,
+            cb_sms_clc,
+            dynm_flag,
+            wifi_id,
+            wifi_date,
+            msg_dn_time,
+            notice_dn_time,
+            url_holdoff,
+            push_flag,
+            push_key,
+            platform_version,
+            fsec_agree,
+            impersonate_agree,
+            block_international,
+            block_roaming
+        FROM customer_profile
+        WHERE cust_num = #{decodeUserID}
+    </select>
+
+    <select id="getLastVisitAt" resultType="java.lang.String">
+        SELECT save_dt
+        FROM app_configurations_history
+        WHERE channel = 'PASS'
+          AND cust_num = #{decodeUserID}
+    </select>
+
+    <insert id="upsertLastVisitAt">
+        INSERT INTO app_configurations_history (
+            channel,
+            cust_num,
+            push_flag,
+            save_dt,
+            last_sms_clc
+        ) VALUES (
+            'PASS',
+            #{decodeUserID},
+            '0',
+            DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
+            NULL
+        )
+        ON DUPLICATE KEY UPDATE
+            save_dt = DATE_FORMAT(NOW(), '%Y%m%d%H%i%s')
+    </insert>
+
+    <update id="updateUserInfoByPass" parameterType="com.company.agw.domain.user.PassUserInfoEntity">
+        UPDATE customer_profile
+        SET
+            email_kind = #{emailKind},
+            auth_kind = #{authKind},
+            addr_flag = #{addrFlag},
+            kisa_agree = #{kisaAgree},
+            url_holdoff = #{urlHoldoff},
+            push_flag = #{pushFlag},
+            fsec_agree = #{fsecAgree},
+            impersonate_agree = #{impersonateAgree},
+            block_international = #{blockInternational},
+            block_roaming = #{blockRoaming},
+            filter_kind = #{filterKind}
+        WHERE cust_num = #{custNum}
+    </update>
 </mapper>

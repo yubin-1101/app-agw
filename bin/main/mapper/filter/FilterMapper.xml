@@ -19,6 +19,373 @@
         ORDER BY filter_seq DESC
     </select>
 
+    <select id="selectWhiteFiltersByPass" resultType="com.company.agw.domain.filter.PassFilterRowEntity">
+        SELECT
+            'whiteNUM' AS filter_group,
+            CAST(whitelist_number_seq AS CHAR) AS id,
+            phone_num AS data,
+            category,
+            memo,
+            save_dt AS date
+        FROM customer_whitelist_number
+        WHERE cust_num = #{decodeUserID}
+        UNION ALL
+        SELECT
+            'whitePattern' AS filter_group,
+            CAST(whitelist_word_seq AS CHAR) AS id,
+            pattern AS data,
+            category,
+            memo,
+            save_dt AS date
+        FROM customer_whitelist_word
+        WHERE cust_num = #{decodeUserID}
+        UNION ALL
+        SELECT
+            'whiteNUMAddr' AS filter_group,
+            CAST(address_number_seq AS CHAR) AS id,
+            phone_num AS data,
+            '' AS category,
+            '' AS memo,
+            save_dt AS date
+        FROM customer_address_number
+        WHERE cust_num = #{decodeUserID}
+    </select>
+
+    <select id="selectBlackFiltersByPass" resultType="com.company.agw.domain.filter.PassFilterRowEntity">
+        SELECT
+            filter_group,
+            id,
+            data,
+            category,
+            memo,
+            date
+        FROM (
+            SELECT
+                'blackNUM' AS filter_group,
+                CAST(blacklist_number_seq AS CHAR) AS id,
+                phone_num AS data,
+                category,
+                memo,
+                save_dt AS date,
+                1 AS sort_group,
+                phone_num AS sort_data
+            FROM customer_blacklist_number
+            WHERE cust_num = #{decodeUserID}
+            UNION ALL
+            SELECT
+                'blackPattern' AS filter_group,
+                CAST(blacklist_word_seq AS CHAR) AS id,
+                pattern AS data,
+                category,
+                memo,
+                save_dt AS date,
+                2 AS sort_group,
+                pattern AS sort_data
+            FROM customer_blacklist_word
+            WHERE cust_num = #{decodeUserID}
+            UNION ALL
+            SELECT
+                'blackPrefix' AS filter_group,
+                CAST(blacklist_prefix_seq AS CHAR) AS id,
+                pfx AS data,
+                category,
+                memo,
+                save_dt AS date,
+                3 AS sort_group,
+                pfx AS sort_data
+            FROM customer_blacklist_prefix
+            WHERE cust_num = #{decodeUserID}
+            UNION ALL
+            SELECT
+                'prefixPool' AS filter_group,
+                CAST(pfx_configurations_seq AS CHAR) AS id,
+                pfx AS data,
+                '' AS category,
+                '' AS memo,
+                save_dt AS date,
+                4 AS sort_group,
+                pfx AS sort_data
+            FROM admin_pfx_configurations
+        ) black_filters
+        ORDER BY sort_group, sort_data
+    </select>
+
+    <select id="countWhiteNumberByData" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_whitelist_number
+        WHERE cust_num = #{custNum}
+          AND phone_num = #{data}
+        <if test="excludeId != null and excludeId != ''">
+          AND whitelist_number_seq != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countWhitePatternByData" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_whitelist_word
+        WHERE cust_num = #{custNum}
+          AND pattern = #{data}
+        <if test="excludeId != null and excludeId != ''">
+          AND whitelist_word_seq != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countWhiteAddressByData" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_address_number
+        WHERE cust_num = #{custNum}
+          AND phone_num = #{data}
+        <if test="excludeId != null and excludeId != ''">
+          AND address_number_seq != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countBlackNumberByData" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_blacklist_number
+        WHERE cust_num = #{custNum}
+          AND phone_num = #{data}
+        <if test="excludeId != null and excludeId != ''">
+          AND blacklist_number_seq != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countBlackPatternByData" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_blacklist_word
+        WHERE cust_num = #{custNum}
+          AND pattern = #{data}
+        <if test="excludeId != null and excludeId != ''">
+          AND blacklist_word_seq != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countBlackPrefixByData" resultType="int">
+        SELECT COUNT(*)
+        FROM customer_blacklist_prefix
+        WHERE cust_num = #{custNum}
+          AND pfx = #{data}
+        <if test="excludeId != null and excludeId != ''">
+          AND blacklist_prefix_seq != #{excludeId}
+        </if>
+    </select>
+
+    <insert id="insertWhiteNumber"
+            parameterType="com.company.agw.domain.filter.PassFilterCommandEntity"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="whitelist_number_seq">
+        INSERT INTO customer_whitelist_number (
+            cust_num,
+            phone_num,
+            category,
+            memo,
+            save_dt
+        ) VALUES (
+            #{custNum},
+            #{data},
+            #{category},
+            #{memo},
+            #{saveDt}
+        )
+    </insert>
+
+    <update id="updateWhiteNumber" parameterType="com.company.agw.domain.filter.PassFilterCommandEntity">
+        UPDATE customer_whitelist_number
+        SET
+            phone_num = #{data},
+            category = #{category},
+            memo = #{memo},
+            save_dt = #{saveDt}
+        WHERE cust_num = #{custNum}
+          AND whitelist_number_seq = #{id}
+    </update>
+
+    <delete id="deleteWhiteNumber">
+        DELETE FROM customer_whitelist_number
+        WHERE cust_num = #{custNum}
+          AND whitelist_number_seq = #{id}
+    </delete>
+
+    <insert id="insertWhitePattern"
+            parameterType="com.company.agw.domain.filter.PassFilterCommandEntity"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="whitelist_word_seq">
+        INSERT INTO customer_whitelist_word (
+            cust_num,
+            pattern,
+            category,
+            memo,
+            save_dt
+        ) VALUES (
+            #{custNum},
+            #{data},
+            #{category},
+            #{memo},
+            #{saveDt}
+        )
+    </insert>
+
+    <update id="updateWhitePattern" parameterType="com.company.agw.domain.filter.PassFilterCommandEntity">
+        UPDATE customer_whitelist_word
+        SET
+            pattern = #{data},
+            category = #{category},
+            memo = #{memo},
+            save_dt = #{saveDt}
+        WHERE cust_num = #{custNum}
+          AND whitelist_word_seq = #{id}
+    </update>
+
+    <delete id="deleteWhitePattern">
+        DELETE FROM customer_whitelist_word
+        WHERE cust_num = #{custNum}
+          AND whitelist_word_seq = #{id}
+    </delete>
+
+    <insert id="insertWhiteAddress"
+            parameterType="com.company.agw.domain.filter.PassFilterCommandEntity"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="address_number_seq">
+        INSERT INTO customer_address_number (
+            cust_num,
+            phone_num,
+            save_dt
+        ) VALUES (
+            #{custNum},
+            #{data},
+            #{saveDt}
+        )
+    </insert>
+
+    <update id="updateWhiteAddress" parameterType="com.company.agw.domain.filter.PassFilterCommandEntity">
+        UPDATE customer_address_number
+        SET
+            phone_num = #{data},
+            save_dt = #{saveDt}
+        WHERE cust_num = #{custNum}
+          AND address_number_seq = #{id}
+    </update>
+
+    <delete id="deleteWhiteAddress">
+        DELETE FROM customer_address_number
+        WHERE cust_num = #{custNum}
+          AND address_number_seq = #{id}
+    </delete>
+
+    <insert id="insertBlackNumber"
+            parameterType="com.company.agw.domain.filter.PassFilterCommandEntity"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="blacklist_number_seq">
+        INSERT INTO customer_blacklist_number (
+            cust_num,
+            phone_num,
+            category,
+            memo,
+            save_dt
+        ) VALUES (
+            #{custNum},
+            #{data},
+            #{category},
+            #{memo},
+            #{saveDt}
+        )
+    </insert>
+
+    <update id="updateBlackNumber" parameterType="com.company.agw.domain.filter.PassFilterCommandEntity">
+        UPDATE customer_blacklist_number
+        SET
+            phone_num = #{data},
+            category = #{category},
+            memo = #{memo},
+            save_dt = #{saveDt}
+        WHERE cust_num = #{custNum}
+          AND blacklist_number_seq = #{id}
+    </update>
+
+    <delete id="deleteBlackNumber">
+        DELETE FROM customer_blacklist_number
+        WHERE cust_num = #{custNum}
+          AND blacklist_number_seq = #{id}
+    </delete>
+
+    <insert id="insertBlackPattern"
+            parameterType="com.company.agw.domain.filter.PassFilterCommandEntity"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="blacklist_word_seq">
+        INSERT INTO customer_blacklist_word (
+            cust_num,
+            pattern,
+            category,
+            memo,
+            save_dt
+        ) VALUES (
+            #{custNum},
+            #{data},
+            #{category},
+            #{memo},
+            #{saveDt}
+        )
+    </insert>
+
+    <update id="updateBlackPattern" parameterType="com.company.agw.domain.filter.PassFilterCommandEntity">
+        UPDATE customer_blacklist_word
+        SET
+            pattern = #{data},
+            category = #{category},
+            memo = #{memo},
+            save_dt = #{saveDt}
+        WHERE cust_num = #{custNum}
+          AND blacklist_word_seq = #{id}
+    </update>
+
+    <delete id="deleteBlackPattern">
+        DELETE FROM customer_blacklist_word
+        WHERE cust_num = #{custNum}
+          AND blacklist_word_seq = #{id}
+    </delete>
+
+    <insert id="insertBlackPrefix"
+            parameterType="com.company.agw.domain.filter.PassFilterCommandEntity"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="blacklist_prefix_seq">
+        INSERT INTO customer_blacklist_prefix (
+            cust_num,
+            pfx,
+            category,
+            memo,
+            save_dt
+        ) VALUES (
+            #{custNum},
+            #{data},
+            #{category},
+            #{memo},
+            #{saveDt}
+        )
+    </insert>
+
+    <update id="updateBlackPrefix" parameterType="com.company.agw.domain.filter.PassFilterCommandEntity">
+        UPDATE customer_blacklist_prefix
+        SET
+            pfx = #{data},
+            category = #{category},
+            memo = #{memo},
+            save_dt = #{saveDt}
+        WHERE cust_num = #{custNum}
+          AND blacklist_prefix_seq = #{id}
+    </update>
+
+    <delete id="deleteBlackPrefix">
+        DELETE FROM customer_blacklist_prefix
+        WHERE cust_num = #{custNum}
+          AND blacklist_prefix_seq = #{id}
+    </delete>
+
     <insert id="insertFilter" parameterType="com.company.agw.domain.filter.FilterEntity">
         INSERT INTO tb_user_filter (
             user_id,

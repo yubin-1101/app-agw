@@ -7,6 +7,7 @@ import lombok.Setter;
 @Setter
 public class KisaReportResponse {
 
+    private String messageId;
     private String resultCode;
     private String resultMessage;
     private String transactionId;

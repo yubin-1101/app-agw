@@ -22,11 +22,34 @@ public interface PassSpamMessageMapper {
             @Param("seqNO") String seqNO
     );
 
+    PassSpamMessageEntity selectRecoverySpamSMS(
+            @Param("custNum") String custNum,
+            @Param("msgType") String msgType,
+            @Param("seqNO") String seqNO
+    );
+
+    PassSpamMessageEntity getTelIdFromSmsSeq(
+            @Param("custNum") String custNum,
+            @Param("seqNO") String seqNO
+    );
+
+    int insertMfsRecoverMessage(
+            @Param("msgKey") String msgKey,
+            @Param("msgType") String msgType,
+            @Param("custNum") String custNum
+    );
+
     int deleteSpamMessageBySeqNo(@Param("seqNO") String seqNO);
 
     int deleteSpamMessagesByCustNum(@Param("decodeUserID") String decodeUserID);
 
     int insertRemoveSpamMsgHistory(
+            @Param("custNum") String custNum,
+            @Param("rst") String rst,
+            @Param("jobMsg") String jobMsg
+    );
+
+    int insertRecoverySpamMsgHistory(
             @Param("custNum") String custNum,
             @Param("rst") String rst,
             @Param("jobMsg") String jobMsg

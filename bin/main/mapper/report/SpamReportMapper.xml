@@ -20,4 +20,52 @@
             NOW()
         )
     </insert>
+
+    <insert id="insertKisaSktMessage" parameterType="com.company.agw.domain.report.PassSpamReportEntity">
+        INSERT INTO kisa_skt_message (
+            list_seq,
+            spam_type,
+            src_num,
+            cust_num,
+            cb_num,
+            rcv_time,
+            msg,
+            spam_probability,
+            number_of_sc,
+            status,
+            save_dt,
+            email_flag
+        ) VALUES (
+            #{listSeq},
+            #{spamType},
+            #{srcNum},
+            #{custNum},
+            #{cbNum},
+            #{rcvTime},
+            #{msg},
+            #{spamProbability},
+            #{numberOfSc},
+            #{status},
+            NOW(),
+            #{emailFlag}
+        )
+    </insert>
+
+    <insert id="insertPassReportSpamMsgHistory">
+        INSERT INTO tworld_configurations_history (
+            job_dt,
+            usr_id,
+            cust_num,
+            job_kind,
+            rst,
+            job_msg
+        ) VALUES (
+            DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'),
+            'PASS',
+            #{custNum},
+            '30',
+            #{rst},
+            #{jobMsg}
+        )
+    </insert>
 </mapper>

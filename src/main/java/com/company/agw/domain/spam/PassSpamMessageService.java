@@ -3,6 +3,7 @@ package com.company.agw.domain.spam;
 import com.company.agw.auth.AuthService;
 import com.company.agw.common.response.PassResponseCode;
 import com.company.agw.domain.user.UserMapper;
+import com.company.agw.external.rcs.RcsClient;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,6 +32,7 @@ public class PassSpamMessageService {
     private final PassSpamMessageMapper passSpamMessageMapper;
     private final UserMapper userMapper;
     private final WebClient.Builder webClientBuilder;
+    private final RcsClient rcsClient;
 
     @Transactional(readOnly = true)
     public GetSpamMsgListResponse getSpamMsgList(GetSpamMsgListRequest request) {
@@ -218,6 +220,110 @@ public class PassSpamMessageService {
         }
     }
 
+    @Transactional
+    public RecoverySpamMsgResponse recoverySpamMsg(RecoverySpamMsgRequest request) {
+        String userID = request == null ? null : request.getUserID();
+        String seqNO = request == null ? null : request.getSeqNO();
+        String decodeUserID;
+
+        try {
+            decodeUserID = authService.decryptPassUserId(userID);
+        } catch (Exception e) {
+            return RecoverySpamMsgResponse.fail(
+                    userID,
+                    seqNO,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        if (!hasText(userID)
+                || !isNumeric(decodeUserID)
+                || !isValidRecoverySpamMsgRequest(request)) {
+            return RecoverySpamMsgResponse.fail(
+                    userID,
+                    seqNO,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        try {
+            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+                return RecoverySpamMsgResponse.notJoined(seqNO);
+            }
+
+            if ("8".equals(request.getMsgType())) {
+                return recoverNewRcsSpamMsg(userID, decodeUserID, seqNO);
+            }
+
+            PassSpamMessageEntity spamMessage = passSpamMessageMapper.selectRecoverySpamSMS(
+                    decodeUserID,
+                    request.getMsgType(),
+                    seqNO
+            );
+            if (spamMessage == null) {
+                return RecoverySpamMsgResponse.fail(
+                        userID,
+                        seqNO,
+                        PassResponseCode.RESTORE_MESSAGE_NOT_FOUND.getRetCode(),
+                        PassResponseCode.RESTORE_MESSAGE_NOT_FOUND.getRetMsg()
+                );
+            }
+
+            passSpamMessageMapper.insertMfsRecoverMessage(
+                    spamMessage.getSmsSeq(),
+                    toRecoverMessageType(spamMessage.getSmsKind()),
+                    spamMessage.getCustNum()
+            );
+
+            RecoverySpamMsgResponse response = RecoverySpamMsgResponse.success(userID, seqNO);
+            insertRecoveryHistory(spamMessage.getCustNum(), "1", response.getRetMsg());
+            return response;
+        } catch (Exception e) {
+            return RecoverySpamMsgResponse.fail(
+                    userID,
+                    seqNO,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
+        }
+    }
+
+    private RecoverySpamMsgResponse recoverNewRcsSpamMsg(String userID, String decodeUserID, String seqNO) {
+        PassSpamMessageEntity rcsMessage = passSpamMessageMapper.getTelIdFromSmsSeq(decodeUserID, seqNO);
+        if (rcsMessage == null || !hasText(rcsMessage.getTelId())) {
+            return RecoverySpamMsgResponse.fail(
+                    userID,
+                    seqNO,
+                    PassResponseCode.RESTORE_MESSAGE_NOT_FOUND.getRetCode(),
+                    PassResponseCode.RESTORE_MESSAGE_NOT_FOUND.getRetMsg()
+            );
+        }
+
+        try {
+            rcsClient.restoreMessage(
+                    rcsMessage.getTelId(),
+                    rcsMessage.getSrcNum(),
+                    rcsMessage.getCustNum(),
+                    rcsMessage.getMsgOrigination()
+            );
+        } catch (Exception e) {
+            RecoverySpamMsgResponse response = RecoverySpamMsgResponse.fail(
+                    userID,
+                    seqNO,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
+            insertRecoveryHistory(rcsMessage.getCustNum(), "2", response.getRetMsg());
+            return response;
+        }
+
+        RecoverySpamMsgResponse response = RecoverySpamMsgResponse.success(userID, seqNO);
+        insertRecoveryHistory(rcsMessage.getCustNum(), "1", response.getRetMsg());
+        return response;
+    }
+
     private List<Object> toPassSpamMessageRow(PassSpamMessageEntity entity) {
         String smsClc = defaultText(entity.getSmsClc());
         List<Object> row = new ArrayList<>();
@@ -331,6 +437,28 @@ public class PassSpamMessageService {
                 && hasText(request.getSeqNO())
                 && isValidMsgType(request.getMsgType())
                 && ("all".equalsIgnoreCase(request.getSeqNO()) || byteLength(request.getSeqNO()) <= 40);
+    }
+
+    private boolean isValidRecoverySpamMsgRequest(RecoverySpamMsgRequest request) {
+        return request != null
+                && hasText(request.getMsgType())
+                && hasText(request.getSeqNO())
+                && isValidMsgType(request.getMsgType())
+                && byteLength(request.getSeqNO()) <= 40;
+    }
+
+    private String toRecoverMessageType(String smsKind) {
+        return hasText(smsKind) ? smsKind : "";
+    }
+
+    private void insertRecoveryHistory(String custNum, String rst, String jobMsg) {
+        if (hasText(custNum)) {
+            try {
+                passSpamMessageMapper.insertRecoverySpamMsgHistory(custNum, rst, jobMsg);
+            } catch (Exception ignored) {
+                // History failure must not hide the restore result returned to PASS.
+            }
+        }
     }
 
     private String resolveRcsMessageId(String decodeUserID, String seqNO) {
