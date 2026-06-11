@@ -4,10 +4,13 @@ import com.company.agw.common.exception.ExternalSystemException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RcsClient {
@@ -36,7 +39,16 @@ public class RcsClient {
                     .retrieve()
                     .toBodilessEntity()
                     .block();
+        } catch (WebClientResponseException e) {
+            log.warn(
+                    "RCS recovery API failed. uri={}, status={}, body={}",
+                    baseUrl + "/rcs/recovery/" + messageId,
+                    e.getStatusCode(),
+                    e.getResponseBodyAsString()
+            );
+            throw new ExternalSystemException();
         } catch (Exception e) {
+            log.warn("RCS recovery API failed. uri={}", baseUrl + "/rcs/recovery/" + messageId, e);
             throw new ExternalSystemException();
         }
     }
@@ -66,7 +78,28 @@ public class RcsClient {
                     .retrieve()
                     .toBodilessEntity()
                     .block();
+        } catch (WebClientResponseException e) {
+            log.warn(
+                    "RCS restore API failed. uri={}, status={}, body={}, messageId={}, originationMdn={}, destinationMdn={}, originationType={}",
+                    baseUrl + "/api/v1/message/restore",
+                    e.getStatusCode(),
+                    e.getResponseBodyAsString(),
+                    messageId,
+                    originationMdn,
+                    destinationMdn,
+                    originationType
+            );
+            throw new ExternalSystemException();
         } catch (Exception e) {
+            log.warn(
+                    "RCS restore API failed. uri={}, messageId={}, originationMdn={}, destinationMdn={}, originationType={}",
+                    baseUrl + "/api/v1/message/restore",
+                    messageId,
+                    originationMdn,
+                    destinationMdn,
+                    originationType,
+                    e
+            );
             throw new ExternalSystemException();
         }
     }

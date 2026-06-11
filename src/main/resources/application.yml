@@ -30,6 +30,7 @@ external:
     base-url: http://10.10.10.81:31528
     username: sptek
     password: 01D13CB0E2E24AF62BDCD45E16784BDF2E47156176A3442EF86D0F5D0F034B60
+    new-spam-onoff: 1
 
 logging:
   level:

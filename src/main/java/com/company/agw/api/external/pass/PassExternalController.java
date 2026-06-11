@@ -15,6 +15,8 @@ import com.company.agw.domain.filter.SetUserFilterWhiteResponse;
 import com.company.agw.domain.report.PassReportSpamMsgRequest;
 import com.company.agw.domain.report.PassReportSpamMsgResponse;
 import com.company.agw.domain.report.PassSpamReportService;
+import com.company.agw.domain.spam.GetDownloadFileRequest;
+import com.company.agw.domain.spam.GetDownloadFileResponse;
 import com.company.agw.domain.spam.GetSpamFileDataRequest;
 import com.company.agw.domain.spam.GetSpamFileDataResponse;
 import com.company.agw.domain.spam.GetSpamMsgListRequest;
@@ -159,6 +161,19 @@ public class PassExternalController {
             HttpServletRequest httpRequest
     ) {
         GetSpamFileDataResponse response = passSpamMessageService.getSpamFileData(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 스팸 메시지 > RCS 첨부파일 다운로드", action = LogAction.SEARCH)
+    @PostMapping("/v1/getDownloadFile")
+    public GetDownloadFileResponse getDownloadFile(
+            @RequestBody GetDownloadFileRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        GetDownloadFileResponse response = passSpamMessageService.getDownloadFile(request);
         httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());

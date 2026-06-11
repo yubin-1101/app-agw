@@ -25,4 +25,17 @@ public class AesManager {
             throw new IllegalArgumentException("Failed to decrypt userID", e);
         }
     }
+
+    public String decryptWithKey(String encryptedValue, String key) {
+        try {
+            String encodedKey = Base64.getEncoder().encodeToString(key.getBytes(StandardCharsets.UTF_8));
+            SecretKeySpec secretKey = new SecretKeySpec(encodedKey.getBytes(StandardCharsets.UTF_8), "AES");
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            byte[] encryptedData = Base64.getDecoder().decode(encryptedValue);
+            return new String(cipher.doFinal(encryptedData), StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to decrypt value", e);
+        }
+    }
 }

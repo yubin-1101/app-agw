@@ -27,4 +27,35 @@ public class AuthService {
     public String decryptPassUserId(String userID) {
         return aesManager.decrypt(userID);
     }
+
+    public String decryptPassFileName(String fileName, String custNum) {
+        return decryptFileUrl(fileName, custNum);
+    }
+
+    private String decryptFileUrl(String fileUrl, String key) {
+        String fileExt = getFileExt(fileUrl);
+        if (hasText(fileExt)) {
+            String encryptedBody = fileUrl.substring(0, fileUrl.lastIndexOf('.'));
+            return aesManager.decryptWithKey(encryptedBody, key) + "." + fileExt;
+        }
+
+        return aesManager.decryptWithKey(fileUrl, key);
+    }
+
+    private String getFileExt(String fileName) {
+        if (!hasText(fileName)) {
+            return "";
+        }
+
+        int dotIndex = fileName.lastIndexOf('.');
+        if (dotIndex < 0 || dotIndex == fileName.length() - 1) {
+            return "";
+        }
+
+        return fileName.substring(dotIndex + 1);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
 }

@@ -15,6 +15,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
@@ -33,6 +34,9 @@ public class PassSpamMessageService {
     private final UserMapper userMapper;
     private final WebClient.Builder webClientBuilder;
     private final RcsClient rcsClient;
+
+    @Value("${external.rcs.new-spam-onoff:1}")
+    private String newRcsSpamOnoff;
 
     @Transactional(readOnly = true)
     public GetSpamMsgListResponse getSpamMsgList(GetSpamMsgListRequest request) {
@@ -143,6 +147,66 @@ public class PassSpamMessageService {
             );
         }
     }
+
+    @Transactional(readOnly = true)
+    public GetDownloadFileResponse getDownloadFile(GetDownloadFileRequest request) {
+        String userID = request == null ? null : request.getUserID();
+        String decodeUserID;
+
+        try {
+            decodeUserID = authService.decryptPassUserId(userID);
+        } catch (Exception e) {
+            return GetDownloadFileResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        if (!hasText(userID)
+                || !isNumeric(decodeUserID)
+                || !isValidGetDownloadFileRequest(request)) {
+            return GetDownloadFileResponse.fail(
+                    userID,
+                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
+            );
+        }
+
+        if (!isNewRcsDownloadEnabled()) {
+            return GetDownloadFileResponse.fail(
+                    userID,
+                    PassResponseCode.IMAGE_EXPIRED.getRetCode(),
+                    PassResponseCode.IMAGE_EXPIRED.getRetMsg()
+            );
+        }
+
+        try {
+            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+                return GetDownloadFileResponse.notJoined();
+            }
+
+            String encryptedFileName = request.getFileName().trim();
+            String downloadUrl = authService.decryptPassFileName(encryptedFileName, decodeUserID);
+            if (!isHttpUrl(downloadUrl)) {
+                return GetDownloadFileResponse.fail(
+                        userID,
+                        PassResponseCode.INVALID_PARAMETER.getRetCode(),
+                        PassResponseCode.INVALID_PARAMETER.getRetMsg()
+                );
+            }
+
+            String fileData = readFileDataAsBase64(downloadUrl);
+            return GetDownloadFileResponse.success(userID, List.of(Map.of(encryptedFileName, fileData)));
+        } catch (Exception e) {
+            return GetDownloadFileResponse.fail(
+                    userID,
+                    PassResponseCode.PROCESS_ERROR.getRetCode(),
+                    PassResponseCode.PROCESS_ERROR.getRetMsg()
+            );
+        }
+    }
+
 
     @Transactional
     public RemoveSpamMsgResponse removeSpamMsg(RemoveSpamMsgRequest request) {
@@ -431,6 +495,13 @@ public class PassSpamMessageService {
                 && byteLength(request.getSeqNO()) <= 40;
     }
 
+    private boolean isValidGetDownloadFileRequest(GetDownloadFileRequest request) {
+        return request != null
+                && hasText(request.getMsgType())
+                && hasText(request.getFileName())
+                && ("5".equals(request.getMsgType()) || "8".equals(request.getMsgType()));
+    }
+
     private boolean isValidRemoveSpamMsgRequest(RemoveSpamMsgRequest request) {
         return request != null
                 && hasText(request.getMsgType())
@@ -476,6 +547,14 @@ public class PassSpamMessageService {
                 || "4".equals(msgType)
                 || "5".equals(msgType)
                 || "8".equals(msgType);
+    }
+
+    private boolean isNewRcsDownloadEnabled() {
+        return !"0".equals(newRcsSpamOnoff);
+    }
+
+    private boolean isHttpUrl(String value) {
+        return value != null && (value.startsWith("http://") || value.startsWith("https://"));
     }
 
     private boolean isExpired(String saveDt, int retentionDays) {
