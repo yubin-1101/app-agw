@@ -7,8 +7,6 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface FilterMapper {
 
-    List<FilterEntity> selectFilters(@Param("userId") String userId, @Param("filterType") FilterType filterType);
-
     List<PassFilterRowEntity> selectWhiteFiltersByPass(@Param("decodeUserID") String decodeUserID);
 
     List<PassFilterRowEntity> selectBlackFiltersByPass(@Param("decodeUserID") String decodeUserID);
@@ -85,9 +83,4 @@ public interface FilterMapper {
 
     int deleteBlackPrefix(@Param("custNum") String custNum, @Param("id") String id);
 
-    int insertFilter(FilterEntity filter);
-
-    int updateFilter(FilterEntity filter);
-
-    int deleteFilter(@Param("filterSeq") Long filterSeq, @Param("userId") String userId);
 }

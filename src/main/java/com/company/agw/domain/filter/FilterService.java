@@ -2,7 +2,6 @@ package com.company.agw.domain.filter;
 
 import com.company.agw.auth.AuthService;
 import com.company.agw.common.response.PassResponseCode;
-import com.company.agw.common.validation.RequestValidator;
 import com.company.agw.domain.user.UserMapper;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -21,24 +20,8 @@ public class FilterService {
     private static final DateTimeFormatter PASS_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final AuthService authService;
-    private final RequestValidator requestValidator;
     private final FilterMapper filterMapper;
     private final UserMapper userMapper;
-
-    @Transactional(readOnly = true)
-    public FilterListResponse getFilters(FilterListRequest request) {
-        authService.authenticatePassRequest(request.getToken());
-        requestValidator.requireText(request.getUserId(), "userId");
-
-        List<FilterResponse> filters = filterMapper.selectFilters(request.getUserId(), request.getFilterType())
-                .stream()
-                .map(FilterResponse::from)
-                .toList();
-
-        return FilterListResponse.builder()
-                .filters(filters)
-                .build();
-    }
 
     @Transactional(readOnly = true)
     public GetUserFilterWhiteResponse getUserFilterWhite(GetUserFilterWhiteRequest request) {

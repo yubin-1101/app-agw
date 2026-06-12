@@ -1,10 +1,7 @@
 package com.company.agw.domain.user;
 
 import com.company.agw.auth.AuthService;
-import com.company.agw.common.exception.BusinessException;
 import com.company.agw.common.response.PassResponseCode;
-import com.company.agw.common.response.ResponseCode;
-import com.company.agw.common.validation.RequestValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,21 +12,7 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 public class UserService {
 
     private final AuthService authService;
-    private final RequestValidator requestValidator;
     private final UserMapper userMapper;
-
-    @Transactional(readOnly = true)
-    public UserStatusResponse getUserStatus(UserStatusRequest request) {
-        authService.authenticatePassRequest(request.getToken());
-        requestValidator.requireText(request.getUserId(), "userId");
-
-        UserEntity user = userMapper.selectUserByUserId(request.getUserId());
-        if (user == null) {
-            throw new BusinessException(ResponseCode.USER_NOT_FOUND);
-        }
-
-        return UserStatusResponse.from(user);
-    }
 
     @Transactional
     public GetUserInfoResponse getUserInfo(GetUserInfoRequest request) {

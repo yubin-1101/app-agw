@@ -1,8 +1,6 @@
 package com.company.agw.api.external.pass;
 
 import com.company.agw.common.response.CommonResponse;
-import com.company.agw.domain.filter.FilterListRequest;
-import com.company.agw.domain.filter.FilterListResponse;
 import com.company.agw.domain.filter.FilterService;
 import com.company.agw.domain.filter.GetUserFilterBlackRequest;
 import com.company.agw.domain.filter.GetUserFilterBlackResponse;
@@ -12,6 +10,9 @@ import com.company.agw.domain.filter.SetUserFilterBlackRequest;
 import com.company.agw.domain.filter.SetUserFilterBlackResponse;
 import com.company.agw.domain.filter.SetUserFilterWhiteRequest;
 import com.company.agw.domain.filter.SetUserFilterWhiteResponse;
+import com.company.agw.domain.keyword.GetKeywordInfoRequest;
+import com.company.agw.domain.keyword.GetKeywordInfoResponse;
+import com.company.agw.domain.keyword.PassKeywordService;
 import com.company.agw.domain.report.PassReportSpamMsgRequest;
 import com.company.agw.domain.report.PassReportSpamMsgResponse;
 import com.company.agw.domain.report.PassSpamReportService;
@@ -34,8 +35,6 @@ import com.company.agw.domain.user.GetUserInfoResponse;
 import com.company.agw.domain.user.SetUserInfoRequest;
 import com.company.agw.domain.user.SetUserInfoResponse;
 import com.company.agw.domain.user.UserService;
-import com.company.agw.domain.user.UserStatusRequest;
-import com.company.agw.domain.user.UserStatusResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import com.company.agw.log.AopLogInfo;
 import com.company.agw.log.LogAction;
@@ -54,13 +53,8 @@ public class PassExternalController {
     private final FilterService filterService;
     private final PassSpamMessageService passSpamMessageService;
     private final PassSpamReportService passSpamReportService;
+    private final PassKeywordService passKeywordService;
     private final SpamMessageService spamMessageService;
-
-    @AopLogInfo(menuPath = "PASS > 사용자 > 상태 조회", action = LogAction.SEARCH)
-    @PostMapping("/user/status")
-    public CommonResponse<UserStatusResponse> getUserStatus(@RequestBody UserStatusRequest request) {
-        return CommonResponse.success(userService.getUserStatus(request));
-    }
 
     @AopLogInfo(menuPath = "PASS > 사용자 > 정보 조회", action = LogAction.SEARCH)
     @PostMapping("/v1/getUserInfo")
@@ -133,12 +127,6 @@ public class PassExternalController {
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
         return response;
-    }
-
-    @AopLogInfo(menuPath = "PASS > 필터 > 목록 조회", action = LogAction.SEARCH)
-    @PostMapping("/filters")
-    public CommonResponse<FilterListResponse> getFilters(@RequestBody FilterListRequest request) {
-        return CommonResponse.success(filterService.getFilters(request));
     }
 
     @AopLogInfo(menuPath = "PASS > 스팸 메시지 > 목록 조회", action = LogAction.SEARCH)
@@ -216,6 +204,19 @@ public class PassExternalController {
         httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
         httpRequest.setAttribute("retMsg", response.getRetMsg());
         httpRequest.setAttribute("userID", request == null ? null : request.getUserID());
+        return response;
+    }
+
+    @AopLogInfo(menuPath = "PASS > 키워드 > 조회", action = LogAction.SEARCH)
+    @PostMapping("/v1/getKeywordInfo")
+    public GetKeywordInfoResponse getKeywordInfo(
+            @RequestBody(required = false) GetKeywordInfoRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        GetKeywordInfoResponse response = passKeywordService.getKeywordInfo(request);
+        httpRequest.setAttribute("retCode", String.valueOf(response.getRetCode()));
+        httpRequest.setAttribute("retMsg", response.getRetMsg());
+        httpRequest.setAttribute("userID", "");
         return response;
     }
 

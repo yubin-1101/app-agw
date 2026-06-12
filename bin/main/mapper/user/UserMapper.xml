@@ -3,41 +3,6 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.company.agw.domain.user.UserMapper">
 
-    <select id="selectUserByUserId" resultType="com.company.agw.domain.user.UserEntity">
-        SELECT
-            user_seq,
-            user_id,
-            mdn,
-            service_status,
-            setting_value,
-            created_at,
-            updated_at
-        FROM tb_user
-        WHERE user_id = #{userId}
-    </select>
-
-    <select id="selectUserByMdn" resultType="com.company.agw.domain.user.UserEntity">
-        SELECT
-            user_seq,
-            user_id,
-            mdn,
-            service_status,
-            setting_value,
-            created_at,
-            updated_at
-        FROM tb_user
-        WHERE mdn = #{mdn}
-    </select>
-
-    <update id="updateUserStatus">
-        UPDATE tb_user
-        SET
-            service_status = #{serviceStatus},
-            setting_value = #{settingValue},
-            updated_at = NOW()
-        WHERE user_seq = #{userSeq}
-    </update>
-
     <select id="selectUserPrivateInfobyPass" resultType="com.company.agw.domain.user.PassUserInfoEntity">
         SELECT
             cust_num,

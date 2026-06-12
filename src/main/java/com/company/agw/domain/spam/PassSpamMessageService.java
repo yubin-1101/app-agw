@@ -15,6 +15,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +24,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PassSpamMessageService {
 
     private static final int PASS_MAX_SIZE = 200;
@@ -189,6 +191,13 @@ public class PassSpamMessageService {
             String encryptedFileName = request.getFileName().trim();
             String downloadUrl = authService.decryptPassFileName(encryptedFileName, decodeUserID);
             if (!isHttpUrl(downloadUrl)) {
+                log.warn(
+                        "getDownloadFile decrypted fileName is not http url. custNum={}, msgType={}, fileNameLength={}, decryptedValue={}",
+                        decodeUserID,
+                        request.getMsgType(),
+                        encryptedFileName.length(),
+                        downloadUrl
+                );
                 return GetDownloadFileResponse.fail(
                         userID,
                         PassResponseCode.INVALID_PARAMETER.getRetCode(),
@@ -199,6 +208,13 @@ public class PassSpamMessageService {
             String fileData = readFileDataAsBase64(downloadUrl);
             return GetDownloadFileResponse.success(userID, List.of(Map.of(encryptedFileName, fileData)));
         } catch (Exception e) {
+            log.warn(
+                    "getDownloadFile failed. custNum={}, msgType={}, fileNameLength={}",
+                    decodeUserID,
+                    request == null ? null : request.getMsgType(),
+                    request == null || request.getFileName() == null ? 0 : request.getFileName().trim().length(),
+                    e
+            );
             return GetDownloadFileResponse.fail(
                     userID,
                     PassResponseCode.PROCESS_ERROR.getRetCode(),

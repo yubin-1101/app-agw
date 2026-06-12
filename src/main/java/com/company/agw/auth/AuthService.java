@@ -19,7 +19,6 @@ public class AuthService {
     public void authenticateSubscriber(String userId, String mdn) {
         passSubscriberAuthService.validateSubscriber(userId, mdn);
     }
-
     public void authenticateInternalRequest(String apiKey) {
         internalApiAuthService.validateApiKey(apiKey);
     }
@@ -29,33 +28,22 @@ public class AuthService {
     }
 
     public String decryptPassFileName(String fileName, String custNum) {
-        return decryptFileUrl(fileName, custNum);
-    }
+        String fileExt = getFileExt(fileName);
 
-    private String decryptFileUrl(String fileUrl, String key) {
-        String fileExt = getFileExt(fileUrl);
-        if (hasText(fileExt)) {
-            String encryptedBody = fileUrl.substring(0, fileUrl.lastIndexOf('.'));
-            return aesManager.decryptWithKey(encryptedBody, key) + "." + fileExt;
+        if (!fileExt.isBlank()) {
+            String encryptedBody = fileName.substring(0, fileName.lastIndexOf("."));
+            return aesManager.decryptWithKey(encryptedBody, custNum) + "." + fileExt;
         }
 
-        return aesManager.decryptWithKey(fileUrl, key);
+        return aesManager.decryptWithKey(fileName, custNum);
     }
 
     private String getFileExt(String fileName) {
-        if (!hasText(fileName)) {
+        int lastDotIndex = fileName.lastIndexOf(".");
+        if (lastDotIndex < 0 || lastDotIndex == fileName.length() - 1) {
             return "";
         }
 
-        int dotIndex = fileName.lastIndexOf('.');
-        if (dotIndex < 0 || dotIndex == fileName.length() - 1) {
-            return "";
-        }
-
-        return fileName.substring(dotIndex + 1);
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.trim().isEmpty();
+        return fileName.substring(lastDotIndex + 1);
     }
 }

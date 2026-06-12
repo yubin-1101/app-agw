@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.company.agw.domain.keyword.PassKeywordMapper">
+
+    <select id="selectPassKeywords" resultType="com.company.agw.domain.keyword.PassKeywordEntity">
+        SELECT
+            seq_no AS seqno,
+            channel AS channel,
+            save_dt AS savedt,
+            theme_code AS themecode,
+            description AS description,
+            sort_key AS sortkey,
+            category AS category,
+            keyword AS keyword
+        FROM app_pass_keyword
+        WHERE channel = #{channel}
+          AND save_dt = #{savedt}
+        <if test="themeCode != null and themeCode != ''">
+          AND theme_code = #{themeCode}
+        </if>
+        ORDER BY theme_code ASC, sort_key ASC
+    </select>
+</mapper>
