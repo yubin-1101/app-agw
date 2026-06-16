@@ -1,6 +1,5 @@
 package com.company.agw.domain.user;
 
-import com.company.agw.auth.AuthService;
 import com.company.agw.common.response.PassResponseCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,16 +10,16 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 @RequiredArgsConstructor
 public class UserService {
 
-    private final AuthService authService;
+    private final PassUserIdentityResolver passUserIdentityResolver;
     private final UserMapper userMapper;
 
     @Transactional
     public GetUserInfoResponse getUserInfo(GetUserInfoRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return GetUserInfoResponse.fail(
                     userID,
@@ -29,22 +28,14 @@ public class UserService {
             );
         }
 
-        if (!hasText(userID) || !isNumeric(decodeUserID)) {
-            return GetUserInfoResponse.fail(
-                    userID,
-                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
-                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
-            );
-        }
-
         try {
-            PassUserInfoEntity userInfo = userMapper.selectUserPrivateInfobyPass(decodeUserID);
+            PassUserInfoEntity userInfo = userMapper.selectUserPrivateInfobyPass(identity.custNum());
             if (userInfo == null) {
                 return GetUserInfoResponse.notJoined();
             }
 
-            String lastVisitDt = userMapper.getLastVisitAt(decodeUserID);
-            userMapper.upsertLastVisitAt(decodeUserID);
+            String lastVisitDt = userMapper.getLastVisitAt(identity.custNum());
+            userMapper.upsertLastVisitAt(identity.custNum());
             return GetUserInfoResponse.success(userID, userInfo, lastVisitDt);
         } catch (Exception e) {
             return GetUserInfoResponse.fail(
@@ -58,10 +49,10 @@ public class UserService {
     @Transactional
     public SetUserInfoResponse setUserInfo(SetUserInfoRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return SetUserInfoResponse.fail(
                     userID,
@@ -70,7 +61,7 @@ public class UserService {
             );
         }
 
-        if (!hasText(userID) || !isNumeric(decodeUserID) || !isValidSetUserInfoRequest(request)) {
+        if (!isValidSetUserInfoRequest(request)) {
             return SetUserInfoResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
@@ -79,13 +70,12 @@ public class UserService {
         }
 
         try {
-            PassUserInfoEntity savedUserInfo = userMapper.selectUserPrivateInfobyPass(decodeUserID);
-            if (savedUserInfo == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return SetUserInfoResponse.notJoined();
             }
 
             PassUserState userState = PassUserState.fromRequest(request.getUserState());
-            userMapper.updateUserInfoByPass(userState.toEntity(decodeUserID, request.getReferenceFilterValue()));
+            userMapper.updateUserInfoByPass(userState.toEntity(identity.custNum(), request.getReferenceFilterValue()));
             return SetUserInfoResponse.success(userID);
         } catch (Exception e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
@@ -95,14 +85,6 @@ public class UserService {
                     PassResponseCode.PROCESS_ERROR.getRetMsg()
             );
         }
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
-    private boolean isNumeric(String value) {
-        return hasText(value) && value.chars().allMatch(Character::isDigit);
     }
 
     private boolean isValidSetUserInfoRequest(SetUserInfoRequest request) {

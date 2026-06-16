@@ -2,7 +2,8 @@ package com.company.agw.domain.spam;
 
 import com.company.agw.auth.AuthService;
 import com.company.agw.common.response.PassResponseCode;
-import com.company.agw.domain.user.UserMapper;
+import com.company.agw.domain.user.PassUserIdentity;
+import com.company.agw.domain.user.PassUserIdentityResolver;
 import com.company.agw.external.rcs.RcsClient;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -32,8 +33,8 @@ public class PassSpamMessageService {
     private static final DateTimeFormatter PASS_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final AuthService authService;
+    private final PassUserIdentityResolver passUserIdentityResolver;
     private final PassSpamMessageMapper passSpamMessageMapper;
-    private final UserMapper userMapper;
     private final WebClient.Builder webClientBuilder;
     private final RcsClient rcsClient;
 
@@ -43,10 +44,10 @@ public class PassSpamMessageService {
     @Transactional(readOnly = true)
     public GetSpamMsgListResponse getSpamMsgList(GetSpamMsgListRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return GetSpamMsgListResponse.fail(
                     userID,
@@ -55,20 +56,12 @@ public class PassSpamMessageService {
             );
         }
 
-        if (!hasText(userID) || !isNumeric(decodeUserID)) {
-            return GetSpamMsgListResponse.fail(
-                    userID,
-                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
-                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
-            );
-        }
-
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return GetSpamMsgListResponse.notJoined();
             }
 
-            List<List<Object>> spamMsgList = passSpamMessageMapper.selectSpamMessagesByPass(decodeUserID, PASS_MAX_SIZE)
+            List<List<Object>> spamMsgList = passSpamMessageMapper.selectSpamMessagesByPass(identity.custNum(), PASS_MAX_SIZE)
                     .stream()
                     .map(this::toPassSpamMessageRow)
                     .toList();
@@ -87,10 +80,10 @@ public class PassSpamMessageService {
     public GetSpamFileDataResponse getSpamFileData(GetSpamFileDataRequest request) {
         String userID = request == null ? null : request.getUserID();
         String seqNO = request == null ? null : request.getSeqNO();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return GetSpamFileDataResponse.fail(
                     userID,
@@ -100,9 +93,7 @@ public class PassSpamMessageService {
             );
         }
 
-        if (!hasText(userID)
-                || !isNumeric(decodeUserID)
-                || !isValidGetSpamFileDataRequest(request)) {
+        if (!isValidGetSpamFileDataRequest(request)) {
             return GetSpamFileDataResponse.fail(
                     userID,
                     seqNO,
@@ -112,13 +103,13 @@ public class PassSpamMessageService {
         }
 
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return GetSpamFileDataResponse.notJoined(seqNO);
             }
 
             String fileName = request.getFileName().trim();
             if (!"8".equals(request.getMsgType())) {
-                PassSpamFileEntity spamFile = passSpamMessageMapper.selectSpamFileByPass(decodeUserID, seqNO);
+                PassSpamFileEntity spamFile = passSpamMessageMapper.selectSpamFileByPass(identity.custNum(), seqNO);
                 if (spamFile == null) {
                     return GetSpamFileDataResponse.fail(
                             userID,
@@ -153,10 +144,10 @@ public class PassSpamMessageService {
     @Transactional(readOnly = true)
     public GetDownloadFileResponse getDownloadFile(GetDownloadFileRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return GetDownloadFileResponse.fail(
                     userID,
@@ -165,9 +156,7 @@ public class PassSpamMessageService {
             );
         }
 
-        if (!hasText(userID)
-                || !isNumeric(decodeUserID)
-                || !isValidGetDownloadFileRequest(request)) {
+        if (!isValidGetDownloadFileRequest(request)) {
             return GetDownloadFileResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
@@ -184,16 +173,16 @@ public class PassSpamMessageService {
         }
 
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return GetDownloadFileResponse.notJoined();
             }
 
             String encryptedFileName = request.getFileName().trim();
-            String downloadUrl = authService.decryptPassFileName(encryptedFileName, decodeUserID);
+            String downloadUrl = authService.decryptPassFileName(encryptedFileName, identity.custNum());
             if (!isHttpUrl(downloadUrl)) {
                 log.warn(
                         "getDownloadFile decrypted fileName is not http url. custNum={}, msgType={}, fileNameLength={}, decryptedValue={}",
-                        decodeUserID,
+                        identity.custNum(),
                         request.getMsgType(),
                         encryptedFileName.length(),
                         downloadUrl
@@ -210,7 +199,7 @@ public class PassSpamMessageService {
         } catch (Exception e) {
             log.warn(
                     "getDownloadFile failed. custNum={}, msgType={}, fileNameLength={}",
-                    decodeUserID,
+                    identity.custNum(),
                     request == null ? null : request.getMsgType(),
                     request == null || request.getFileName() == null ? 0 : request.getFileName().trim().length(),
                     e
@@ -227,10 +216,10 @@ public class PassSpamMessageService {
     @Transactional
     public RemoveSpamMsgResponse removeSpamMsg(RemoveSpamMsgRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return RemoveSpamMsgResponse.fail(
                     userID,
@@ -239,9 +228,7 @@ public class PassSpamMessageService {
             );
         }
 
-        if (!hasText(userID)
-                || !isNumeric(decodeUserID)
-                || !isValidRemoveSpamMsgRequest(request)) {
+        if (!isValidRemoveSpamMsgRequest(request)) {
             return RemoveSpamMsgResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
@@ -250,12 +237,12 @@ public class PassSpamMessageService {
         }
 
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return RemoveSpamMsgResponse.notJoined();
             }
 
             if ("8".equals(request.getMsgType())) {
-                String telId = resolveRcsMessageId(decodeUserID, request.getSeqNO());
+                String telId = resolveRcsMessageId(identity.custNum(), request.getSeqNO());
                 if (!hasText(telId)) {
                     return RemoveSpamMsgResponse.fail(
                             userID,
@@ -272,7 +259,7 @@ public class PassSpamMessageService {
             }
 
             int affectedRows = "all".equalsIgnoreCase(request.getSeqNO())
-                    ? passSpamMessageMapper.deleteSpamMessagesByCustNum(decodeUserID)
+                    ? passSpamMessageMapper.deleteSpamMessagesByCustNum(identity.custNum())
                     : passSpamMessageMapper.deleteSpamMessageBySeqNo(request.getSeqNO());
 
             if (affectedRows < 1 && !"all".equalsIgnoreCase(request.getSeqNO())) {
@@ -285,7 +272,7 @@ public class PassSpamMessageService {
 
             RemoveSpamMsgResponse response = RemoveSpamMsgResponse.success(userID);
             passSpamMessageMapper.insertRemoveSpamMsgHistory(
-                    decodeUserID,
+                    identity.custNum(),
                     String.valueOf(response.getRetCode()),
                     response.getRetMsg()
             );
@@ -304,10 +291,10 @@ public class PassSpamMessageService {
     public RecoverySpamMsgResponse recoverySpamMsg(RecoverySpamMsgRequest request) {
         String userID = request == null ? null : request.getUserID();
         String seqNO = request == null ? null : request.getSeqNO();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return RecoverySpamMsgResponse.fail(
                     userID,
@@ -317,9 +304,7 @@ public class PassSpamMessageService {
             );
         }
 
-        if (!hasText(userID)
-                || !isNumeric(decodeUserID)
-                || !isValidRecoverySpamMsgRequest(request)) {
+        if (!isValidRecoverySpamMsgRequest(request)) {
             return RecoverySpamMsgResponse.fail(
                     userID,
                     seqNO,
@@ -329,16 +314,16 @@ public class PassSpamMessageService {
         }
 
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return RecoverySpamMsgResponse.notJoined(seqNO);
             }
 
             if ("8".equals(request.getMsgType())) {
-                return recoverNewRcsSpamMsg(userID, decodeUserID, seqNO);
+                return recoverNewRcsSpamMsg(userID, identity.custNum(), seqNO);
             }
 
             PassSpamMessageEntity spamMessage = passSpamMessageMapper.selectRecoverySpamSMS(
-                    decodeUserID,
+                    identity.custNum(),
                     request.getMsgType(),
                     seqNO
             );
@@ -608,9 +593,5 @@ public class PassSpamMessageService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
-    }
-
-    private boolean isNumeric(String value) {
-        return hasText(value) && value.chars().allMatch(Character::isDigit);
     }
 }

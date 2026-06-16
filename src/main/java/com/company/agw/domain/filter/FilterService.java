@@ -1,8 +1,8 @@
 package com.company.agw.domain.filter;
 
-import com.company.agw.auth.AuthService;
 import com.company.agw.common.response.PassResponseCode;
-import com.company.agw.domain.user.UserMapper;
+import com.company.agw.domain.user.PassUserIdentity;
+import com.company.agw.domain.user.PassUserIdentityResolver;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -19,17 +19,16 @@ public class FilterService {
 
     private static final DateTimeFormatter PASS_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
-    private final AuthService authService;
+    private final PassUserIdentityResolver passUserIdentityResolver;
     private final FilterMapper filterMapper;
-    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public GetUserFilterWhiteResponse getUserFilterWhite(GetUserFilterWhiteRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return GetUserFilterWhiteResponse.fail(
                     userID,
@@ -38,20 +37,12 @@ public class FilterService {
             );
         }
 
-        if (!hasText(userID) || !isNumeric(decodeUserID)) {
-            return GetUserFilterWhiteResponse.fail(
-                    userID,
-                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
-                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
-            );
-        }
-
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return GetUserFilterWhiteResponse.notJoined();
             }
 
-            Map<String, List<List<Object>>> filters = filterMapper.selectWhiteFiltersByPass(decodeUserID)
+            Map<String, List<List<Object>>> filters = filterMapper.selectWhiteFiltersByPass(identity.custNum())
                     .stream()
                     .collect(Collectors.groupingBy(
                             PassFilterRowEntity::getFilterGroup,
@@ -76,10 +67,10 @@ public class FilterService {
     @Transactional(readOnly = true)
     public GetUserFilterBlackResponse getUserFilterBlack(GetUserFilterBlackRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return GetUserFilterBlackResponse.fail(
                     userID,
@@ -88,20 +79,12 @@ public class FilterService {
             );
         }
 
-        if (!hasText(userID) || !isNumeric(decodeUserID)) {
-            return GetUserFilterBlackResponse.fail(
-                    userID,
-                    PassResponseCode.INVALID_PARAMETER.getRetCode(),
-                    PassResponseCode.INVALID_PARAMETER.getRetMsg()
-            );
-        }
-
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return GetUserFilterBlackResponse.notJoined();
             }
 
-            Map<String, List<List<Object>>> filters = filterMapper.selectBlackFiltersByPass(decodeUserID)
+            Map<String, List<List<Object>>> filters = filterMapper.selectBlackFiltersByPass(identity.custNum())
                     .stream()
                     .collect(Collectors.groupingBy(
                             PassFilterRowEntity::getFilterGroup,
@@ -127,10 +110,10 @@ public class FilterService {
     @Transactional
     public SetUserFilterWhiteResponse setUserFilterWhite(SetUserFilterWhiteRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return SetUserFilterWhiteResponse.fail(
                     userID,
@@ -139,7 +122,7 @@ public class FilterService {
             );
         }
 
-        if (!hasText(userID) || !isNumeric(decodeUserID) || !isValidSetUserFilterWhiteRequest(request)) {
+        if (!isValidSetUserFilterWhiteRequest(request)) {
             return SetUserFilterWhiteResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
@@ -148,15 +131,15 @@ public class FilterService {
         }
 
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return SetUserFilterWhiteResponse.notJoined();
             }
 
             return SetUserFilterWhiteResponse.success(
                     userID,
-                    processFilterRows(decodeUserID, request.getWhiteNUM(), PassFilterCommandKind.WHITE_NUMBER),
-                    processFilterRows(decodeUserID, request.getWhitePattern(), PassFilterCommandKind.WHITE_PATTERN),
-                    processFilterRows(decodeUserID, request.getWhiteNUMAddr(), PassFilterCommandKind.WHITE_ADDRESS)
+                    processFilterRows(identity.custNum(), request.getWhiteNUM(), PassFilterCommandKind.WHITE_NUMBER),
+                    processFilterRows(identity.custNum(), request.getWhitePattern(), PassFilterCommandKind.WHITE_PATTERN),
+                    processFilterRows(identity.custNum(), request.getWhiteNUMAddr(), PassFilterCommandKind.WHITE_ADDRESS)
             );
         } catch (Exception e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
@@ -171,10 +154,10 @@ public class FilterService {
     @Transactional
     public SetUserFilterBlackResponse setUserFilterBlack(SetUserFilterBlackRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return SetUserFilterBlackResponse.fail(
                     userID,
@@ -183,7 +166,7 @@ public class FilterService {
             );
         }
 
-        if (!hasText(userID) || !isNumeric(decodeUserID) || !isValidSetUserFilterBlackRequest(request)) {
+        if (!isValidSetUserFilterBlackRequest(request)) {
             return SetUserFilterBlackResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
@@ -192,15 +175,15 @@ public class FilterService {
         }
 
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return SetUserFilterBlackResponse.notJoined();
             }
 
             return SetUserFilterBlackResponse.success(
                     userID,
-                    processFilterRows(decodeUserID, request.getBlackNUM(), PassFilterCommandKind.BLACK_NUMBER),
-                    processFilterRows(decodeUserID, request.getBlackPattern(), PassFilterCommandKind.BLACK_PATTERN),
-                    processFilterRows(decodeUserID, request.getBlackPrefix(), PassFilterCommandKind.BLACK_PREFIX)
+                    processFilterRows(identity.custNum(), request.getBlackNUM(), PassFilterCommandKind.BLACK_NUMBER),
+                    processFilterRows(identity.custNum(), request.getBlackPattern(), PassFilterCommandKind.BLACK_PATTERN),
+                    processFilterRows(identity.custNum(), request.getBlackPrefix(), PassFilterCommandKind.BLACK_PREFIX)
             );
         } catch (Exception e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
@@ -351,14 +334,6 @@ public class FilterService {
 
     private List<Object> toPassFilterRow(PassFilterRowEntity entity) {
         return PassFilterResponseRow.fromEntity(entity).toPassRow();
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
-    private boolean isNumeric(String value) {
-        return hasText(value) && value.chars().allMatch(Character::isDigit);
     }
 
     private boolean isValidSetUserFilterWhiteRequest(SetUserFilterWhiteRequest request) {

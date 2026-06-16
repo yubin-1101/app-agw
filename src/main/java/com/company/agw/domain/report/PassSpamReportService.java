@@ -1,10 +1,10 @@
 package com.company.agw.domain.report;
 
-import com.company.agw.auth.AuthService;
 import com.company.agw.common.response.PassResponseCode;
 import com.company.agw.domain.spam.PassSpamMessageEntity;
 import com.company.agw.domain.spam.PassSpamMessageMapper;
-import com.company.agw.domain.user.UserMapper;
+import com.company.agw.domain.user.PassUserIdentity;
+import com.company.agw.domain.user.PassUserIdentityResolver;
 import com.company.agw.external.kisa.KisaClient;
 import com.company.agw.external.kisa.dto.KisaReportResponse;
 import com.company.agw.external.kisa.dto.PassKisaReportRequest;
@@ -23,8 +23,7 @@ public class PassSpamReportService {
     private static final String DEFAULT_STATUS = "SUCCESS";
     private static final String DEFAULT_FLAG = "0";
 
-    private final AuthService authService;
-    private final UserMapper userMapper;
+    private final PassUserIdentityResolver passUserIdentityResolver;
     private final PassSpamMessageMapper passSpamMessageMapper;
     private final SpamReportMapper spamReportMapper;
     private final KisaClient kisaClient;
@@ -32,10 +31,10 @@ public class PassSpamReportService {
     @Transactional
     public PassReportSpamMsgResponse reportSpamMsg(PassReportSpamMsgRequest request) {
         String userID = request == null ? null : request.getUserID();
-        String decodeUserID;
+        PassUserIdentity identity;
 
         try {
-            decodeUserID = authService.decryptPassUserId(userID);
+            identity = passUserIdentityResolver.resolve(userID);
         } catch (Exception e) {
             return PassReportSpamMsgResponse.fail(
                     userID,
@@ -44,9 +43,7 @@ public class PassSpamReportService {
             );
         }
 
-        if (!hasText(userID)
-                || !isNumeric(decodeUserID)
-                || !isValidReportSpamMsgRequest(request)) {
+        if (!isValidReportSpamMsgRequest(request)) {
             return PassReportSpamMsgResponse.fail(
                     userID,
                     PassResponseCode.INVALID_PARAMETER.getRetCode(),
@@ -63,7 +60,7 @@ public class PassSpamReportService {
         }
 
         try {
-            if (userMapper.selectUserPrivateInfobyPass(decodeUserID) == null) {
+            if (!passUserIdentityResolver.isJoined(identity.custNum())) {
                 return PassReportSpamMsgResponse.notJoined();
             }
 
@@ -71,7 +68,7 @@ public class PassSpamReportService {
             PassSpamMessageEntity spamMessage = null;
             if (!"0".equals(request.getSmsSeq())) {
                 spamMessage = passSpamMessageMapper.selectRecoverySpamSMS(
-                        decodeUserID,
+                        identity.custNum(),
                         request.getSmsType(),
                         request.getSmsSeq()
                 );
@@ -81,7 +78,7 @@ public class PassSpamReportService {
                             PassResponseCode.REPORT_MESSAGE_NOT_FOUND.getRetCode(),
                             PassResponseCode.REPORT_MESSAGE_NOT_FOUND.getRetMsg()
                     );
-                    insertReportHistory(decodeUserID, "2", response.getRetMsg());
+                    insertReportHistory(identity.custNum(), "2", response.getRetMsg());
                     return response;
                 }
             }
@@ -95,13 +92,13 @@ public class PassSpamReportService {
 
             PassReportSpamMsgResponse response = PassReportSpamMsgResponse.success(userID);
             spamReportMapper.insertKisaSktMessage(toKisaSktMessage(
-                    decodeUserID,
+                    identity.custNum(),
                     request,
                     spamMessage,
                     reportData,
                     kisaResponse
             ));
-            insertReportHistory(decodeUserID, "1", response.getRetMsg());
+            insertReportHistory(identity.custNum(), "1", response.getRetMsg());
             return response;
         } catch (Exception e) {
             return PassReportSpamMsgResponse.fail(
@@ -213,10 +210,6 @@ public class PassSpamReportService {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
-    }
-
-    private boolean isNumeric(String value) {
-        return hasText(value) && value.chars().allMatch(Character::isDigit);
     }
 
     private record ReportData(
