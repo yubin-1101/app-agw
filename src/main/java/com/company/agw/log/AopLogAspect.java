@@ -36,7 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class AopLogAspect {
 
     private final ObjectMapper objectMapper;
-    private final UserActionLogService userActionLogService;
+    private final LogUtil logUtil;
 
     @Around("@annotation(aopLogInfo)")
     public Object writeUserActionLog(ProceedingJoinPoint joinPoint, AopLogInfo aopLogInfo) throws Throwable {
@@ -60,18 +60,18 @@ public class AopLogAspect {
             HttpServletRequest request = getCurrentRequest();
             Map<String, Object> requestData = extractRequestData(joinPoint);
 
-            UserActionLog userActionLog = UserActionLog.builder()
-                    .userId(extractMaskedUserId(requestData))
-                    .menuPath(aopLogInfo.menuPath())
-                    .action(aopLogInfo.action())
-                    .requestData(toJson(requestData))
-                    .successYn(success ? "Y" : "N")
-                    .clientIp(request == null ? null : request.getRemoteAddr())
-                    .errorMessage(errorMessage)
-                    .createdAt(LocalDateTime.now())
-                    .build();
+            Map<String, Object> logData = new LinkedHashMap<>();
+            logData.put("event", "USER_ACTION");
+            logData.put("userId", extractMaskedUserId(requestData));
+            logData.put("menuPath", aopLogInfo.menuPath());
+            logData.put("action", aopLogInfo.action());
+            logData.put("requestData", requestData);
+            logData.put("successYn", success ? "Y" : "N");
+            logData.put("clientIp", request == null ? null : request.getRemoteAddr());
+            logData.put("errorMessage", errorMessage);
+            logData.put("createdAt", LocalDateTime.now());
 
-            userActionLogService.save(userActionLog);
+            logUtil.write(log, LogUtil.LogType.TRANSACTION, success ? LogUtil.LogLevel.INFO : LogUtil.LogLevel.WARNING, logData);
         } catch (Exception e) {
             log.warn("Failed to create user action log. method={}", joinPoint.getSignature().getName());
         }
